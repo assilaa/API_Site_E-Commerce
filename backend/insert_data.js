@@ -1,7 +1,7 @@
 const sqlite3 = require('sqlite3').verbose();
 const fs = require('fs');
 const path = require('path');
-const bcrypt = require('bcryptjs'); // <-- NÉCESSITE npm install bcrypt
+const bcrypt = require('bcrypt'); // <-- NÉCESSITE npm install bcrypt
 
 // Nom du fichier de la base de données
 const DB_FILE = './bdd.db';

@@ -1,57 +1,46 @@
 <template>
-  <div class="container">
-    <h2>Points de retrait proches</h2>
+  <div>
+    <LMap :zoom="13" :center="[userLat, userLon]" style="height:400px;">
+      <LTileLayer url="https://tile.openstreetmap.org/{z}/{x}/{y}.png" />
+      
+      <LMarker :lat-lng="[userLat, userLon]">
+        <LPopup>Vous êtes ici</LPopup>
+      </LMarker>
 
-    <button @click="getLocation">📍 Localiser</button>
-
-    <div v-if="loading">Chargement...</div>
-
-    <ul v-if="pickupPoints.length">
-      <li v-for="(point, index) in pickupPoints" :key="index">
-        <strong>{{ point.name }}</strong><br>
-        Latitude : {{ point.lat }} - Longitude : {{ point.lon }}
-      </li>
-    </ul>
+      <LMarker 
+        v-for="p in pointsRetrait" 
+        :key="p.id_point"
+        :lat-lng="[p.latitude, p.longitude]"
+      >
+        <LPopup>{{ p.nom }}<br>{{ p.distance.toFixed(2) }} km</LPopup>
+      </LMarker>
+    </LMap>
   </div>
 </template>
 
+
 <script>
-import geoService from "../services/geolocationService";
+import axios from "axios";
 
 export default {
   data() {
     return {
-      pickupPoints: [],
-      loading: false
+      pointsRetrait: []
     };
   },
-
-  methods: {
-    getLocation() {
-      this.loading = true;
-
-      navigator.geolocation.getCurrentPosition(
-        async (pos) => {
-          const lat = pos.coords.latitude;
-          const lon = pos.coords.longitude;
-
-          const response = await geoService.getPickupPoints(lat, lon);
-
-          this.pickupPoints = response.data;
-          this.loading = false;
-        },
-        () => {
-          alert("Impossible de récupérer votre position");
-          this.loading = false;
-        }
-      );
+  async mounted() {
+    try {
+      const res = await axios.get("http://localhost:3000/api/points-retrait");
+      this.pointsRetrait = res.data;
+    } catch (error) {
+      console.error("Erreur chargement points retrait :", error);
     }
   }
 };
 </script>
 
-<style>
-.container {
+<style scoped>
+.pickup-container {
   padding: 20px;
 }
 </style>

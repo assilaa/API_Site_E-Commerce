@@ -82,33 +82,24 @@ export default {
   },
   methods: {
     async validation() {
-  try {
-    const res = await axios.post('http://localhost:3000/api/login', {
-      pseudo: this.loginUsername,
-      password: this.loginPassword
-    });
+      try {
+        const res = await axios.post('http://localhost:3000/api/login', {
+          pseudo: this.loginUsername,
+          password: this.loginPassword
+        });
 
-    // On stocke TOUT
-    localStorage.setItem("token", res.data.token);  // IMPORTANT !
-    localStorage.setItem("role", res.data.role);
-    localStorage.setItem("userId", res.data.userId);
-
-    this.loginError = false;
-
-    // On ferme le popup
-    this.showLoginPopup = false;
-
-    // On redirige selon le rôle
-    if (res.data.role === 'admin') {
-      this.$router.push('/admin');
-    } else if (res.data.role === 'user') {
-      this.$router.push('/carte'); 
-    }
-
-  } catch (err) {
-    this.loginError = true;
-  }
-},
+        localStorage.setItem("role", res.data.role);
+        localStorage.setItem("userId", res.data.userId);
+        
+        if (res.data.role === 'admin') {
+          this.$router.push('/admin');
+        } else if (res.data.role === 'user') {
+          this.$router.push('/carte');
+        }
+      } catch (err) {
+        this.loginError = true;
+      }
+    },
 
     async validateSignUp() {
   try {

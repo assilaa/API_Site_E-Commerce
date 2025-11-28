@@ -166,14 +166,12 @@ INSERT INTO EDITEUR (id_editeur, nom_editeur) VALUES
 (96, 'Ísöld ehf.'), (97, 'Kaissa Chess & Games'), (98, 'Korea Boardgames Co., Ltd.'), (99, 'L&M Games'), (100, 'Laser plus');
 
 INSERT INTO EDITEUR (id_editeur, nom_editeur) VALUES
-(101, 'Fantasy Flight Games'), (102, 'The Avalon Hill Game Co'), (103, 'Descartes Editeur'), (104, 'Grow Jogos e Brinquedos'), (105, 'Supremacy Games'), 
-(106, 'Steve Jackson Games'), (107, 'Devir'), (108, 'Edge Entertainment'), (109, 'Finnish Game House'), (110, 'Laurin Verlag'), 
-(111, 'Pegasus Spiele'), (112, 'Queen Games'), (113, 'Raven Distribution'), (114, 'Ubik'), (115, 'Ludodélire'), 
-(116, 'Milton Bradley'), (117, 'AS Company'), (118, 'Canada Games'), (119, 'Crown & Andrews Ltd.'), (120, 'Diset S. A.'), 
-(121, 'Kod Kod'), (122, 'Mattel'), (123, 'Schmidt France'), (124, 'Schmidt Spiele'), (125, 'Selecta Spel en Hobby'), 
-(126, 'Waddingtons'), (127, 'Action GT'), (128, 'BHS Games'), (129, 'GP Games'), (130, 'Lakeside'), 
-(131, 'OPEN''N PLAY'), -- CORRECTION : Doublage de l'apostrophe dans OPEN'N PLAY
-(132, 'Pelikan'), (133, 'Piatnik');
+(1, 'Hans im Glück'),
+(2, 'Moskito Spiele'),
+(3, 'Portal Games'),
+(4, 'Spielworxx'),
+(5, 'Stronghold Games');
+
 
 
 -- ===================================
@@ -250,3 +248,11 @@ INSERT INTO LAISSER_UN_AVIS (id_u, id_j, date_publication, avis, note) VALUES
 (4, 4, '2024-04-04', 'Toujours un plaisir, idéal pour les débutants.', 8),
 (5, 5, '2024-04-05', 'Complexe et profond, le meilleur jeu de l''année !', 10); -- CORRECTION : Doublage de l'apostrophe dans l'année
 -- Réduction des insertions d'avis
+
+
+INSERT INTO POINT_RETRAIT (nom, adresse, latitude, longitude) VALUES
+('Relais Paris République', '12 Rue Bouchardon 75010 Paris', 48.8699, 2.3609),
+('Relais Belleville', '103 Rue de Belleville 75019 Paris', 48.8778, 2.3884),
+('Relais Bastille', '7 Rue de la Roquette 75011 Paris', 48.8534, 2.3710),
+('Relais Nation', '25 Cours de Vincennes 75020 Paris', 48.8481, 2.4060),
+('Relais Châtelet', '5 Rue Saint-Denis 75001 Paris', 48.8593, 2.3488);

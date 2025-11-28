@@ -87,15 +87,19 @@ CREATE TABLE REGLES (
 );
 
 -- 9. ACHAT (Historique des achats)
+
 CREATE TABLE ACHAT (
     id_achat INTEGER PRIMARY KEY AUTOINCREMENT,
     id_u INTEGER NOT NULL,
     id_j INTEGER NOT NULL,
+    id_point_retrait INTEGER NOT NULL,
     date_achat DATE NOT NULL,
     quantite_achetee INTEGER NOT NULL,
     FOREIGN KEY (id_u) REFERENCES UTILISATEUR (id_u),
-    FOREIGN KEY (id_j) REFERENCES JEU (id_j)
+    FOREIGN KEY (id_j) REFERENCES JEU (id_j),
+    FOREIGN KEY (id_point_retrait) REFERENCES POINT_RETRAIT(id_point)
 );
+
 
 -- TABLES DE LIAISON (Relations)
 
@@ -156,4 +160,12 @@ CREATE TABLE LAISSER_UN_AVIS (
     PRIMARY KEY (id_u, id_j),
     FOREIGN KEY (id_u) REFERENCES UTILISATEUR (id_u),
     FOREIGN KEY (id_j) REFERENCES JEU (id_j)
+);
+
+CREATE TABLE IF NOT EXISTS POINT_RETRAIT (
+    id_point INTEGER PRIMARY KEY AUTOINCREMENT,
+    nom TEXT NOT NULL,
+    adresse TEXT NOT NULL,
+    latitude REAL NOT NULL,
+    longitude REAL NOT NULL
 );
