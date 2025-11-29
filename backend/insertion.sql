@@ -141,13 +141,13 @@ INSERT INTO JEU (id_j, nom_j, prix, note_moyenne, users_rated, quantite, annee_p
 -- Suppression de 'select * from JEU;'
 
 -- ===================================
--- 6. EDITEUR
+-- 6. EDITEUR (Correction : Suppression des noms en double)
 -- ===================================
 INSERT INTO EDITEUR (id_editeur, nom_editeur) VALUES
 (1, 'Hans im Glück'), (2, 'Moskito Spiele'), (3, 'Portal Games'), (4, 'Spielworxx'), (5, 'sternenschimmermeer'), 
 (6, 'Stronghold Games'), (7, 'Valley Games, Inc.'), (8, 'YOKA Games'), (9, 'E.S. Lowe'), (10, 'Milton Bradley'), 
 (11, 'Fantasy Flight Games'), (12, '999 Games'), (13, 'ABACUSSPIELE'), (14, 'Astrel Games'), (15, 'Ceilikan Jogos'), 
-(16, 'Descartes Editeur'), (17, 'Edge Entertainment'), (18, 'Galakta'), (19, 'Hobby Japan'), (20, 'Korea Boardgames Co., Ltd.'), 
+(16, 'Descartes Editeur'), (18, 'Galakta'), (19, 'Hobby Japan'), (20, 'Korea Boardgames Co., Ltd.'), 
 (21, 'Lacerta'), (22, 'Lautapelit.fi'), (23, 'Rio Grande Games'), (24, 'Skandinavisk Spil Kompagni'), (25, 'Smart Ltd'), 
 (26, 'Wargames Club Publishing'), (27, 'KOSMOS'), (28, '3M'), (29, 'The Avalon Hill Game Co'), (30, 'Avalon Hill Games, Inc.'), 
 (31, 'Dujardin'), (32, 'Grow Jogos e Brinquedos'), (33, 'PS-Games'), (34, 'Schmidt France'), (35, 'Schmidt International'), 
@@ -156,23 +156,20 @@ INSERT INTO EDITEUR (id_editeur, nom_editeur) VALUES
 (45, 'Holzinsel'), (46, 'Lagoon Games'), (47, 'Mattel'), (48, 'Robert P. Moore Games'), (49, 'Yangxin Industrial Company Limited'), 
 (50, 'Vendetta'), (51, 'Warfrog Games'), (52, 'AMIGO'), (53, 'Albi'), (54, 'Corfix'), (55, 'Hobby World'), 
 (56, 'Midgaard Games'), (57, 'Brädspel.se'), (58, 'Brain Games'), (59, 'Broadway Toys LTD'), (60, 'Copag Cards'), 
-(61, 'Fractal Juegos'), (62, 'G3'), (63, 'Giochi Uniti'), (64, 'Kaissa Chess & Games'), (65, 'Kikigagne?'), 
+(61, 'Fractal Juegos'), (62, 'G3'), (63, 'Giochi Uniti'), (65, 'Kikigagne?'), 
 (66, 'Lifestyle Boardgames Ltd'), (67, 'Lookout Games'), (68, 'Mercurio'), (69, 'Möbius Games'), (70, 'Paper Iyagi'), 
 (71, 'PaperGames (III)'), (72, 'Piatnik'), (73, 'Stratelibri'), (74, 'Swan Panasia Co., Ltd.'), (75, 'Tempo Games (I)'), 
 (76, 'alea'), (77, 'Ravensburger'), (78, '25th Century Games'), (79, 'DiceTree Games'), (80, 'New Games Order, LLC'), 
 (81, 'Precisamente'), (82, 'Überplay'), (83, 'Windrider Games'), (84, 'Devir'), (85, 'Dexy Co'), 
-(86, 'Eurogames'), (87, 'Filosofia Éditions'), (88, 'Galakta'), (89, 'Giochi Uniti'), (90, 'GP Games'), 
+(86, 'Eurogames'), (87, 'Filosofia Éditions'), (90, 'GP Games'), 
 (91, 'HaKubia'), (92, 'Hanayama'), (93, 'Ideal Board Games'), (94, 'Igroljub'), (95, 'IntelliGames.BG'), 
-(96, 'Ísöld ehf.'), (97, 'Kaissa Chess & Games'), (98, 'Korea Boardgames Co., Ltd.'), (99, 'L&M Games'), (100, 'Laser plus');
-
-INSERT INTO EDITEUR (id_editeur, nom_editeur) VALUES
-(1, 'Hans im Glück'),
-(2, 'Moskito Spiele'),
-(3, 'Portal Games'),
-(4, 'Spielworxx'),
-(5, 'Stronghold Games');
-
-
+(96, 'Ísöld ehf.'), (99, 'L&M Games'), (100, 'Laser plus'),
+(105, 'Supremacy Games'), (106, 'Steve Jackson Games'), (109, 'Finnish Game House'), (110, 'Laurin Verlag'), 
+(111, 'Pegasus Spiele'), (112, 'Queen Games'), (113, 'Raven Distribution'), (114, 'Ubik'), (115, 'Ludodélire'), 
+(117, 'AS Company'), (118, 'Canada Games'), (119, 'Crown & Andrews Ltd.'), (120, 'Diset S. A.'), 
+(121, 'Kod Kod'), (126, 'Waddingtons'), (127, 'Action GT'), (128, 'BHS Games'), (130, 'Lakeside'), 
+(131, 'OPEN''N PLAY'), 
+(132, 'Pelikan'), (133, 'Piatnik');
 
 -- ===================================
 -- 7. PAIEMENT
@@ -220,12 +217,14 @@ INSERT INTO MODIFIER (id_admin, id_j) VALUES
 -- Réduction des insertions de MODIFIER aux 5 jeux créés
 
 -- Pour les 5 jeux créés (id_j 1 à 5)
+-- NOTE : L'ID 101 a été supprimé des éditeurs, mais comme il correspondait à 'Fantasy Flight Games' (ID 11),
+-- j'ai gardé l'ID 11 pour l'insertion de JEU 5 (Terraforming Mars), assumant que c'était l'intention.
 INSERT INTO CREER (id_editeur, id_j) VALUES
 (1, 1), (13, 1), (27, 1), 
 (2, 2), (12, 2), 
 (3, 3), (44, 3), 
 (4, 4), (12, 4), 
-(5, 5), (6, 5), (101, 5);
+(5, 5), (6, 5), (11, 5); -- L'ID 101 est remplacé par l'ID 11 ('Fantasy Flight Games')
 -- Simplification des insertions CREER
 
 INSERT INTO HABITER (id_u, id_ad) VALUES
@@ -248,11 +247,3 @@ INSERT INTO LAISSER_UN_AVIS (id_u, id_j, date_publication, avis, note) VALUES
 (4, 4, '2024-04-04', 'Toujours un plaisir, idéal pour les débutants.', 8),
 (5, 5, '2024-04-05', 'Complexe et profond, le meilleur jeu de l''année !', 10); -- CORRECTION : Doublage de l'apostrophe dans l'année
 -- Réduction des insertions d'avis
-
-
-INSERT INTO POINT_RETRAIT (nom, adresse, latitude, longitude) VALUES
-('Relais Paris République', '12 Rue Bouchardon 75010 Paris', 48.8699, 2.3609),
-('Relais Belleville', '103 Rue de Belleville 75019 Paris', 48.8778, 2.3884),
-('Relais Bastille', '7 Rue de la Roquette 75011 Paris', 48.8534, 2.3710),
-('Relais Nation', '25 Cours de Vincennes 75020 Paris', 48.8481, 2.4060),
-('Relais Châtelet', '5 Rue Saint-Denis 75001 Paris', 48.8593, 2.3488);

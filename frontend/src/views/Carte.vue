@@ -233,7 +233,7 @@ export default {
             id_jeu: this.jeuDetails.id_j,
             id_user: id_user,
             quantite_achetee: this.quantiteAchat,
-            id_point_retrait: this.selectedPickup.id,
+            id_point: this.selectedPickup.id,
             lat: this.selectedPickup.lat,
             lon: this.selectedPickup.lon,
             nom_point: this.selectedPickup.nom
