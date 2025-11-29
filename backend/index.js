@@ -345,22 +345,23 @@ app.get("/api/categories", async (req, res) => {
 });
 
 
+// --- MISE À JOUR : Mes Commandes (utilise toujours la table ACHAT) ---
 app.get("/api/mes-achats/:id", async (req, res) => {
   const userId = req.params.id;
   try {
     const achats = await dbAll(
-      `SELECT a.id_achat, a.date_achat, a.quantite_achetee, j.nom_j, j.prix
+      `SELECT a.id_achat, a.date_achat, a.quantite_achetee, j.nom_j, j.prix, p.nom_point
        FROM ACHAT a
        JOIN JEU j ON a.id_j = j.id_j
+       -- 💡 Jointure sur la table POINT_RETRAIT
+       JOIN POINT_RETRAIT p ON a.id_point_retrait = p.id_point 
        WHERE a.id_u = ?
        ORDER BY a.date_achat DESC`,
       [userId]
     );
     res.json(achats);
   } catch (err) {
-    res
-      .status(500)
-      .json({ error: "Erreur serveur lors de la récupération des achats." });
+    res.status(500).json({ error: "Erreur serveur lors de la récupération des commandes." });
   }
 });
 
@@ -399,4 +400,147 @@ db.get("SELECT name FROM sqlite_master WHERE type='table' AND name='CATEGORIE'",
 
 db.on("error", (err) => {
   console.error("Erreur de connexion à la base de données:", err.message);
+});
+
+// ➕ Route : Ajouter au Panier
+
+app.post("/api/panier/ajouter", async (req, res) => {
+    const { id_jeu, id_user, quantite_demandee } = req.body;
+
+    if (!id_jeu || !id_user || !quantite_demandee || quantite_demandee <= 0) {
+        return res.status(400).json({ error: "Données requises (jeu, utilisateur, quantité) manquantes ou invalides." });
+    }
+
+    try {
+        // 1. Vérifier le stock disponible du jeu
+        const jeu = await dbGet("SELECT quantite FROM JEU WHERE id_j = ?", [id_jeu]);
+        
+        if (!jeu) {
+            return res.status(404).json({ error: "Jeu introuvable." });
+        }
+        
+        if (jeu.quantite < quantite_demandee) {
+            return res.status(409).json({ error: "Stock insuffisant pour cette quantité." });
+        }
+
+        // 2. Vérifier si l'article est déjà dans le panier de l'utilisateur
+        const ligneExistante = await dbGet(
+            "SELECT id_panier_ligne, quantite_panier FROM PANIER WHERE id_u = ? AND id_j = ?", 
+            [id_user, id_jeu]
+        );
+
+        if (ligneExistante) {
+            // 3. Si l'article existe, mettre à jour la quantité (et revérifier le stock total)
+            const nouvelleQuantite = ligneExistante.quantite_panier + quantite_demandee;
+            
+            if (jeu.quantite < nouvelleQuantite) {
+                return res.status(409).json({ error: "L'ajout dépasse le stock disponible." });
+            }
+
+            await dbRun(
+                "UPDATE PANIER SET quantite_panier = ?, date_ajout = ? WHERE id_panier_ligne = ?",
+                [nouvelleQuantite, new Date().toISOString(), ligneExistante.id_panier_ligne]
+            );
+            return res.status(200).json({ message: "Quantité mise à jour dans le panier." });
+            
+        } else {
+            // 4. Si l'article n'existe pas, l'insérer
+            await dbRun(
+                "INSERT INTO PANIER (id_u, id_j, quantite_panier, date_ajout) VALUES (?, ?, ?, ?)",
+                [id_user, id_jeu, quantite_demandee, new Date().toISOString()]
+            );
+            return res.status(201).json({ message: "Article ajouté au panier." });
+        }
+
+    } catch (error) {
+        console.error("Erreur lors de l'ajout au panier :", error);
+        res.status(500).json({ error: "Erreur serveur lors de l'ajout au panier." });
+    }
+});
+
+// --- NOUVELLE ROUTE : Passer la Commande ---
+app.post("/api/commander", async (req, res) => {
+    const { id_user, id_point, nom_point, lat, lon } = req.body; 
+    // Validation des données...
+
+    // Démarrer la transaction
+    await dbRun("BEGIN TRANSACTION;");
+    
+    try {
+        const date_commande = new Date().toISOString(); 
+
+        // 1. Récupérer le contenu du panier
+        const panierItems = await dbAll(
+            `SELECT p.id_j, p.quantite_panier, j.quantite AS stock_dispo, j.prix 
+             FROM PANIER p 
+             JOIN JEU j ON p.id_j = j.id_j 
+             WHERE p.id_u = ?`, 
+            [id_user]
+        );
+
+        if (panierItems.length === 0) {
+            await dbRun("ROLLBACK;");
+            return res.status(400).json({ error: "Le panier est vide." });
+        }
+
+        // 2. Enregistrer/Mettre à jour le point de retrait
+        await dbRun(
+          'INSERT OR IGNORE INTO POINT_RETRAIT (id_point, nom_point, lat, lon) VALUES (?, ?, ?, ?)',
+          [id_point, nom_point, lat, lon]
+        );
+
+        let montantTotal = 0;
+        
+        // 3. Boucler, vérifier stock, enregistrer dans ACHAT, mettre à jour JEU
+        for (const item of panierItems) {
+            if (item.quantite_panier > item.stock_dispo) {
+                await dbRun("ROLLBACK;");
+                return res.status(409).json({ error: `Stock insuffisant pour le jeu ID ${item.id_j}.` });
+            }
+
+            montantTotal += item.prix * item.quantite_panier;
+
+            // Enregistrement de la COMMANDE dans la table ACHAT
+            await dbRun(
+                'INSERT INTO ACHAT (id_u, id_j, id_point_retrait, date_achat, quantite_achetee) VALUES (?, ?, ?, ?, ?)',
+                [id_user, item.id_j, id_point, date_commande, item.quantite_panier]
+            );
+
+            // Mise à jour du stock
+            const nouveauStock = item.stock_dispo - item.quantite_panier;
+            await dbRun("UPDATE JEU SET quantite = ? WHERE id_j = ?", [nouveauStock, item.id_j]);
+        }
+        
+        // 4. Vider le panier
+        await dbRun("DELETE FROM PANIER WHERE id_u = ?", [id_user]);
+        
+        // 5. Finaliser la transaction
+        await dbRun("COMMIT;");
+
+        return res.status(201).json({
+          message: `Commande enregistrée. Montant total: ${montantTotal.toFixed(2)}€.`,
+        });
+
+    } catch (error) {
+        await dbRun("ROLLBACK;");
+        console.error("ERREUR CRITIQUE PENDANT LA COMMANDE :", error); 
+        return res.status(500).json({ error: "Erreur lors de la finalisation de la commande." });
+    }
+});
+
+// --- NOUVELLE ROUTE : Lire le contenu du Panier ---
+app.get("/api/panier/:id_user", async (req, res) => {
+    const userId = req.params.id_user;
+    try {
+        const panier = await dbAll(
+            `SELECT p.id_panier_ligne, p.id_j, p.quantite_panier, j.nom_j, j.prix, j.quantite AS stock_dispo
+             FROM PANIER p
+             JOIN JEU j ON p.id_j = j.id_j
+             WHERE p.id_u = ?`,
+            [userId]
+        );
+        res.json(panier);
+    } catch (err) {
+        res.status(500).json({ error: "Erreur lors de la récupération du panier." });
+    }
 });

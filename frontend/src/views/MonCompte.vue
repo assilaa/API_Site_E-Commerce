@@ -5,6 +5,7 @@
       <button class="hamburger" @click="menuOpen = !menuOpen">☰</button>
       <ul :class="{ open: menuOpen }">
         <li><router-link to="/carte">Carte</router-link></li>
+        <li><router-link to="/mon-panier">Mon Panier</router-link></li>
         <li><router-link to="/mon-compte">Mon Compte</router-link></li>
         <li><a href="#" @click.prevent="logout">Déconnexion</a></li>
       </ul>

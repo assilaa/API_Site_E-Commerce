@@ -9,7 +9,8 @@ DROP TABLE IF EXISTS HABITER;
 DROP TABLE IF EXISTS CREER;
 DROP TABLE IF EXISTS MODIFIER;
 DROP TABLE IF EXISTS VERIFIER;
-DROP TABLE IF EXISTS ACHAT; -- Nouvelle table pour l'historique des achats
+DROP TABLE IF EXISTS ACHAT; -- Table des commandes finalisées
+DROP TABLE IF EXISTS PANIER; -- Nouvelle table pour les articles temporaires
 DROP TABLE IF EXISTS REGLES;
 DROP TABLE IF EXISTS PAIEMENT;
 DROP TABLE IF EXISTS EDITEUR;
@@ -28,7 +29,7 @@ CREATE TABLE UTILISATEUR (
     num_tel TEXT,
     email_u TEXT UNIQUE NOT NULL,
     pseudo_u TEXT UNIQUE NOT NULL,
-    password_u TEXT NOT NULL -- Hash du mot de passe
+    password_u TEXT NOT NULL
 );
 
 -- 2. ADRESSE
@@ -45,7 +46,7 @@ CREATE TABLE ADMINISTRATEUR (
     id_admin INTEGER PRIMARY KEY,
     email_admin TEXT UNIQUE NOT NULL,
     pseudo_admin TEXT UNIQUE NOT NULL,
-    password_admin TEXT NOT NULL -- Hash du mot de passe
+    password_admin TEXT NOT NULL
 );
 
 -- 4. CATEGORIE
@@ -86,8 +87,7 @@ CREATE TABLE IF NOT EXISTS REGLES (
     nbr_joueurs_max INTEGER NOT NULL
 );
 
--- 9. ACHAT (Historique des achats)
-
+-- 9. ACHAT (Historique des commandes finalisées)
 CREATE TABLE IF NOT EXISTS ACHAT (
     id_achat INTEGER PRIMARY KEY AUTOINCREMENT,
     id_u INTEGER NOT NULL,
@@ -98,6 +98,26 @@ CREATE TABLE IF NOT EXISTS ACHAT (
     FOREIGN KEY (id_u) REFERENCES UTILISATEUR (id_u),
     FOREIGN KEY (id_j) REFERENCES JEU (id_j),
     FOREIGN KEY (id_point_retrait) REFERENCES POINT_RETRAIT(id_point)
+);
+
+-- 💡 NOUVELLE TABLE : PANIER (Articles temporaires)
+CREATE TABLE IF NOT EXISTS PANIER (
+    id_panier_ligne INTEGER PRIMARY KEY AUTOINCREMENT,
+    id_u INTEGER NOT NULL,
+    id_j INTEGER NOT NULL,
+    quantite_panier INTEGER NOT NULL,
+    date_ajout DATE NOT NULL,
+    UNIQUE (id_u, id_j), 
+    FOREIGN KEY (id_u) REFERENCES UTILISATEUR (id_u),
+    FOREIGN KEY (id_j) REFERENCES JEU (id_j)
+);
+
+-- 11. POINT_RETRAIT
+CREATE TABLE IF NOT EXISTS POINT_RETRAIT (
+    id_point INTEGER PRIMARY KEY,
+    nom_point TEXT NOT NULL,
+    lat REAL NOT NULL,
+    lon REAL NOT NULL
 );
 
 
@@ -160,11 +180,4 @@ CREATE TABLE IF NOT EXISTS LAISSER_UN_AVIS (
     PRIMARY KEY (id_u, id_j),
     FOREIGN KEY (id_u) REFERENCES UTILISATEUR (id_u),
     FOREIGN KEY (id_j) REFERENCES JEU (id_j)
-);
-
-CREATE TABLE IF NOT EXISTS POINT_RETRAIT (
-    id_point INTEGER PRIMARY KEY,
-    nom_point TEXT NOT NULL,
-    lat REAL NOT NULL,
-    lon REAL NOT NULL
 );
