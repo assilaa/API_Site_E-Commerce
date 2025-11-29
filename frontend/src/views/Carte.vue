@@ -206,6 +206,8 @@ export default {
           .addTo(this.map)
           .on("click", () => {
             this.selectedPickup = p;
+              console.log("🟢 CLICK pickup:", p);
+              console.log("🟢 Keys:", Object.keys(p));
             this.showMap = false;
           });
 
@@ -214,6 +216,8 @@ export default {
     },
 
     async validerAchat() {
+      console.log("Selected pickup :", this.selectedPickup);
+
       if (!this.selectedPickup) {
         this.achatErreur = "Veuillez choisir un point de retrait.";
         return;
@@ -237,11 +241,19 @@ export default {
         });
 
         const data = await res.json();
+        console.log("🔥 Overpass API retourne :", data);
+        console.log("🔥 Nombre d'éléments :", data.elements?.length);
 
         if (!res.ok) {
           this.achatErreur = data.error;
         } else {
           this.achatSucces = "Achat enregistré.";
+
+          // 🔥 rediriger vers MonCompte après 1s
+          setTimeout(() => {
+            this.showPopup = false;
+            this.$router.push("/mon-compte");
+          }, 1000);
         }
       } catch (e) {
         this.achatErreur = "Erreur réseau.";
@@ -282,7 +294,6 @@ export default {
       const data = await res.json();
 
       if (!data.elements) return;
-
       this.pointsRetrait = data.elements
         .filter(e => e.tags && (e.tags.name || e.tags.brand || e.tags.operator))
         .map(e => ({

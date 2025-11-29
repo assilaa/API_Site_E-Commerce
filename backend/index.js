@@ -119,6 +119,7 @@ app.post("/api/acheter", (req, res) => {
     // Récupérer les informations sur le jeu et vérifier la disponibilité du stock
     db.get("SELECT quantite, prix FROM JEU WHERE id_j = ?", [id_jeu], (err, row) => {
       if (err || !row) {
+        console.log("❌ SQL ERROR SELECT:", err);
         db.run("ROLLBACK;");
         return res.status(500).json({ error: "Jeu introuvable ou erreur de stock." });
       }
@@ -134,6 +135,7 @@ app.post("/api/acheter", (req, res) => {
       // Mettre à jour le stock du jeu
       db.run("UPDATE JEU SET quantite = ? WHERE id_j = ?", [nouveauStock, id_jeu], (err2) => {
         if (err2) {
+          console.log("❌ SQL ERROR UPDATE JEU:", err2);
           db.run("ROLLBACK;");
           return res.status(500).json({ error: "Erreur lors de la mise à jour du stock." });
         }
@@ -144,6 +146,7 @@ app.post("/api/acheter", (req, res) => {
           [id_user, id_jeu, id_point_retrait, quantite_achetee],
           (err3) => {
             if (err3) {
+              console.log("❌ SQL ERROR INSERT ACHAT:", err3);
               db.run("ROLLBACK;");
               return res.status(500).json({ error: "Erreur lors de l'enregistrement de l'achat." });
             }
@@ -243,6 +246,7 @@ app.get("/api/categories", async (req, res) => {
 // ===============================================
 db.on("open", () => {
   console.log("Connecté à la base de données SQLite.");
+
   app.listen(port, () => {
     console.log(
       `Serveur backend LudoMap (Achat/Vente) lancé sur http://localhost:${port}`
