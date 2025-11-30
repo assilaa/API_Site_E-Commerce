@@ -130,6 +130,13 @@
         <strong>Note : {{ a.note }}/10</strong>
         <p>{{ a.commentaire }}</p>
         <small>{{ new Date(a.date_avis).toLocaleString() }}</small>
+        <button
+          v-if="String(a.id_user) === String(userId)"
+          class="delete-btn"
+          @click="supprimerAvis(a.id_avis)"
+        >
+          🗑 Supprimer
+        </button>
         <hr />
       </div>
 
@@ -352,6 +359,7 @@ export default {
       avisError: "",
       avisSuccess: "",
       avisListe: [],
+      userId: localStorage.getItem("userId"),
     };
   },
 
@@ -465,6 +473,30 @@ export default {
         }
       } catch {
         this.avisError = "Erreur serveur.";
+      }
+    },
+    async supprimerAvis(id_avis) {
+      const id_user = this.userId;
+
+      try {
+        const res = await fetch(
+          `http://localhost:3000/api/avis/${id_avis}/${id_user}`,
+          {
+            method: "DELETE",
+          }
+        );
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          alert(data.error || "Erreur lors de la suppression.");
+          return;
+        }
+
+        // rafraîchir la liste des avis
+        this.chargerAvis(this.jeuAvis.id_j);
+      } catch (err) {
+        alert("Erreur serveur.");
       }
     },
 
