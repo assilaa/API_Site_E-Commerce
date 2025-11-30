@@ -77,7 +77,7 @@
   </div>
 
   <!-- ⭐ POPUP AVIS -->
-  <div v-if="showAvisPopup" class="Pupop">
+  <!-- <div v-if="showAvisPopup" class="Pupop">
     <div class="pupop-container">
       <span class="close" @click="fermerAvis">&times;</span>
       <h3>Laisser un avis</h3>
@@ -110,10 +110,60 @@
         <p v-if="avisSuccess" style="color: green">{{ avisSuccess }}</p>
       </form>
     </div>
+  </div> -->
+  <!-- POPUP AVIS -->
+  <div v-if="showAvisPopup" class="Pupop">
+    <div class="pupop-container">
+      <span class="close" @click="fermerAvis">&times;</span>
+
+      <h3>Laisser un avis</h3>
+      <p><strong>Jeu :</strong> {{ jeuAvis.nom_j }}</p>
+
+      <!-- ⭐ Avis existants -->
+      <h4>Avis des autres utilisateurs</h4>
+
+      <div v-if="avisListe.length === 0" class="no-avis">
+        <p>Aucun avis pour le moment.</p>
+      </div>
+
+      <div v-for="a in avisListe" :key="a.id_avis" class="avis-item">
+        <strong>Note : {{ a.note }}/10</strong>
+        <p>{{ a.commentaire }}</p>
+        <small>{{ new Date(a.date_avis).toLocaleString() }}</small>
+        <hr />
+      </div>
+
+      <!-- ⭐ Formulaire d'ajout d'avis -->
+      <form @submit.prevent="envoyerAvis">
+        <label>Note (1 à 10)</label>
+        <input
+          type="number"
+          v-model.number="avisNote"
+          min="1"
+          max="10"
+          required
+        />
+
+        <label>Commentaire</label>
+        <textarea
+          v-model="avisTexte"
+          placeholder="Votre avis..."
+          rows="3"
+          class="avis-textarea"
+          required
+        ></textarea>
+
+        <button id="submit" type="submit">Envoyer</button>
+        <button id="close" type="button" @click="fermerAvis">Annuler</button>
+
+        <p v-if="avisError" style="color: red">{{ avisError }}</p>
+        <p v-if="avisSuccess" style="color: green">{{ avisSuccess }}</p>
+      </form>
+    </div>
   </div>
 </template>
 
-<script>
+<!-- <script>
 export default {
   name: "PageCarte",
 
@@ -264,6 +314,168 @@ export default {
       .catch(() => {
         this.avisListe = [];
       });
+  },
+
+  mounted() {
+    this.fetchCategories();
+    this.fetchJeux();
+  },
+};
+</script> -->
+
+<script>
+export default {
+  name: "PageCarte",
+
+  data() {
+    return {
+      filtreNom: "",
+      filtreCategorie: "",
+      filtreJoueurs: null,
+
+      categories: [],
+      jeux: [],
+      menuOpen: false,
+
+      /* PANIER */
+      showPopup: false,
+      jeuDetails: null,
+      quantiteAchat: 1,
+      panierErreur: "",
+      panierSucces: "",
+
+      /* AVIS */
+      showAvisPopup: false,
+      jeuAvis: null,
+      avisNote: null,
+      avisTexte: "",
+      avisError: "",
+      avisSuccess: "",
+      avisListe: [],
+    };
+  },
+
+  computed: {
+    jeuxFiltres() {
+      return this.jeux.filter(
+        (j) =>
+          (this.filtreNom === "" ||
+            j.nom_j.toLowerCase().includes(this.filtreNom.toLowerCase())) &&
+          (this.filtreCategorie === "" ||
+            Number(j.id_cat) === Number(this.filtreCategorie)) &&
+          (!this.filtreJoueurs || j.nb_joueurs === this.filtreJoueurs)
+      );
+    },
+  },
+
+  methods: {
+    logout() {
+      localStorage.removeItem("role");
+      localStorage.removeItem("userId");
+      this.$router.push("/");
+    },
+
+    /* ---------------- PANIER ---------------- */
+    ouvrirPopup(jeu) {
+      this.jeuDetails = jeu;
+      this.quantiteAchat = 1;
+      this.panierErreur = "";
+      this.panierSucces = "";
+      this.showPopup = true;
+    },
+    fermerPopup() {
+      this.showPopup = false;
+    },
+
+    async ajouterAuPanier() {
+      const id_user = localStorage.getItem("userId");
+      if (!id_user) return (this.panierErreur = "Veuillez vous connecter.");
+
+      try {
+        const res = await fetch("http://localhost:3000/api/panier/ajouter", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id_jeu: this.jeuDetails.id_j,
+            id_user,
+            quantite_demandee: this.quantiteAchat,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) this.panierErreur = data.error;
+        else {
+          this.panierSucces = "Ajouté au panier !";
+          setTimeout(() => this.fermerPopup(), 800);
+        }
+      } catch {
+        this.panierErreur = "Erreur de connexion.";
+      }
+    },
+
+    /* ---------------- AVIS ---------------- */
+    ouvrirPopupAvis(jeu) {
+      this.jeuAvis = jeu;
+      this.avisNote = "";
+      this.avisTexte = "";
+      this.avisError = "";
+      this.avisSuccess = "";
+
+      this.showAvisPopup = true;
+      this.chargerAvis(jeu.id_j);
+    },
+
+    fermerAvis() {
+      this.showAvisPopup = false;
+    },
+
+    async chargerAvis(id_j) {
+      try {
+        const res = await fetch(`http://localhost:3000/api/avis/${id_j}`);
+        const data = await res.json();
+        this.avisListe = data;
+      } catch {
+        this.avisListe = [];
+      }
+    },
+
+    async envoyerAvis() {
+      const id_user = localStorage.getItem("userId");
+      if (!id_user)
+        return (this.avisError = "Connectez-vous pour poster un avis.");
+
+      try {
+        const res = await fetch("http://localhost:3000/api/avis", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id_j: this.jeuAvis.id_j,
+            id_user,
+            note: this.avisNote,
+            commentaire: this.avisTexte,
+          }),
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) this.avisError = data.error;
+        else {
+          this.avisSuccess = "Avis envoyé !";
+          this.chargerAvis(this.jeuAvis.id_j);
+          setTimeout(() => this.fermerAvis(), 800);
+        }
+      } catch {
+        this.avisError = "Erreur serveur.";
+      }
+    },
+
+    async fetchCategories() {
+      const r = await fetch("http://localhost:3000/api/categories");
+      this.categories = await r.json();
+    },
+    async fetchJeux() {
+      const r = await fetch("http://localhost:3000/api/jeux");
+      this.jeux = await r.json();
+    },
   },
 
   mounted() {
