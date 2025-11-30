@@ -6,6 +6,10 @@ const fs = require("fs"); // AJOUT : Import du module File System
 
 const app = express();
 
+import avisRoutes from "./routes/avis.js";
+app.use("/api/avis", avisRoutes);
+
+
 app.use(
   cors({
     origin: "http://localhost:5173", // ton frontend

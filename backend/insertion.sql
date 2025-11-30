@@ -247,3 +247,15 @@ INSERT INTO LAISSER_UN_AVIS (id_u, id_j, date_publication, avis, note) VALUES
 (4, 4, '2024-04-04', 'Toujours un plaisir, idéal pour les débutants.', 8),
 (5, 5, '2024-04-05', 'Complexe et profond, le meilleur jeu de l''année !', 10); -- CORRECTION : Doublage de l'apostrophe dans l'année
 -- Réduction des insertions d'avis
+
+CREATE TABLE AVIS (
+    id_avis INT AUTO_INCREMENT PRIMARY KEY,
+    id_j INT NOT NULL,
+    id_user INT NOT NULL,
+    note INT CHECK (note BETWEEN 1 AND 10),
+    commentaire TEXT,
+    date_avis TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (id_j) REFERENCES JEU(id_j) ON DELETE CASCADE,
+    FOREIGN KEY (id_user) REFERENCES UTILISATEUR(id_user) ON DELETE CASCADE
+);
