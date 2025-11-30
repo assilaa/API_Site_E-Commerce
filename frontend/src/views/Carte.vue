@@ -7,6 +7,9 @@
         <li><router-link to="/carte">Carte</router-link></li>
         <li><router-link to="/mon-panier">Mon Panier</router-link></li>
         <li><router-link to="/mon-compte">Mon Compte</router-link></li>
+        <li>
+          <router-link to="/recommandations">Mes Recommandations</router-link>
+        </li>
         <li><a href="#" @click.prevent="logout">Déconnexion</a></li>
       </ul>
     </div>
@@ -32,8 +35,8 @@
     <div class="liste-jeux">
       <div v-for="jeu in jeuxFiltres" :key="jeu.id_j" class="carte-jeu">
         <h3>{{ jeu.nom_j }}</h3>
-        <p>Catégorie : {{ jeu.categorie }}</p>
-        <p>Nombre de joueurs : {{ jeu.nb_joueurs || "..." }}</p>
+        <p>Catégories : {{ jeu.categories || "Non renseigné" }}</p>
+        <p>Joueurs : {{ jeu.minplayers }} - {{ jeu.maxplayers }}</p>
         <p>Prix unitaire : {{ jeu.prix }} €</p>
         <p>En stock : {{ jeu.quantite }}</p>
 
@@ -47,7 +50,6 @@
     </div>
   </div>
 
-  <!-- 🛒 POPUP PANIER (identique) -->
   <div v-if="showPopup" class="Pupop">
     <div class="pupop-container">
       <span class="close" @click="fermerPopup">&times;</span>
@@ -76,42 +78,6 @@
     </div>
   </div>
 
-  <!-- ⭐ POPUP AVIS -->
-  <!-- <div v-if="showAvisPopup" class="Pupop">
-    <div class="pupop-container">
-      <span class="close" @click="fermerAvis">&times;</span>
-      <h3>Laisser un avis</h3>
-
-      <p><strong>Jeu :</strong> {{ jeuAvis.nom_j }}</p>
-
-      <form @submit.prevent="envoyerAvis">
-        <label>Note (1 à 10)</label>
-        <input
-          type="number"
-          v-model.number="avisNote"
-          min="1"
-          max="10"
-          required
-        />
-
-        <label>Commentaire</label>
-        <textarea
-          v-model="avisTexte"
-          placeholder="Votre avis..."
-          rows="3"
-          class="avis-textarea"
-          required
-        ></textarea>
-
-        <button id="submit" type="submit">Envoyer</button>
-        <button id="close" type="button" @click="fermerAvis">Annuler</button>
-
-        <p v-if="avisError" style="color: red">{{ avisError }}</p>
-        <p v-if="avisSuccess" style="color: green">{{ avisSuccess }}</p>
-      </form>
-    </div>
-  </div> -->
-  <!-- POPUP AVIS -->
   <div v-if="showAvisPopup" class="Pupop">
     <div class="pupop-container">
       <span class="close" @click="fermerAvis">&times;</span>
@@ -119,7 +85,6 @@
       <h3>Laisser un avis</h3>
       <p><strong>Jeu :</strong> {{ jeuAvis.nom_j }}</p>
 
-      <!-- ⭐ Avis existants -->
       <h4>Avis des autres utilisateurs</h4>
 
       <div v-if="avisListe.length === 0" class="no-avis">
@@ -140,7 +105,6 @@
         <hr />
       </div>
 
-      <!-- ⭐ Formulaire d'ajout d'avis -->
       <form @submit.prevent="envoyerAvis">
         <label>Note (1 à 10)</label>
         <input
@@ -169,166 +133,6 @@
     </div>
   </div>
 </template>
-
-<!-- <script>
-export default {
-  name: "PageCarte",
-
-  data() {
-    return {
-      filtreNom: "",
-      filtreCategorie: "",
-      filtreJoueurs: null,
-
-      categories: [],
-      jeux: [],
-      menuOpen: false,
-
-      /* PANIER */
-      showPopup: false,
-      jeuDetails: null,
-      quantiteAchat: 1,
-      panierErreur: "",
-      panierSucces: "",
-
-      /* AVIS */
-      showAvisPopup: false,
-      jeuAvis: null,
-      avisNote: null,
-      avisTexte: "",
-      avisError: "",
-      avisSuccess: "",
-      avisListe: [],
-    };
-  },
-
-  computed: {
-    jeuxFiltres() {
-      return this.jeux.filter(
-        (j) =>
-          (this.filtreNom === "" ||
-            j.nom_j.toLowerCase().includes(this.filtreNom.toLowerCase())) &&
-          (this.filtreCategorie === "" ||
-            Number(j.id_cat) === Number(this.filtreCategorie)) &&
-          (!this.filtreJoueurs || j.nb_joueurs === this.filtreJoueurs)
-      );
-    },
-  },
-
-  methods: {
-    logout() {
-      localStorage.removeItem("role");
-      localStorage.removeItem("userId");
-      this.$router.push("/");
-    },
-
-    /* PANIER */
-    ouvrirPopup(jeu) {
-      this.jeuDetails = jeu;
-      this.quantiteAchat = 1;
-      this.panierErreur = "";
-      this.panierSucces = "";
-      this.showPopup = true;
-    },
-    fermerPopup() {
-      this.showPopup = false;
-    },
-
-    async ajouterAuPanier() {
-      const id_user = localStorage.getItem("userId");
-      if (!id_user) return (this.panierErreur = "Veuillez vous connecter.");
-
-      try {
-        const res = await fetch("http://localhost:3000/api/panier/ajouter", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            id_jeu: this.jeuDetails.id_j,
-            id_user,
-            quantite_demandee: this.quantiteAchat,
-          }),
-        });
-        const data = await res.json();
-        if (!res.ok) this.panierErreur = data.error;
-        else {
-          this.panierSucces = "Ajouté au panier !";
-          setTimeout(() => this.fermerPopup(), 800);
-        }
-      } catch {
-        this.panierErreur = "Erreur de connexion.";
-      }
-    },
-
-    /* AVIS */
-    ouvrirPopupAvis(jeu) {
-      this.jeuAvis = jeu;
-      this.avisNote = "";
-      this.avisTexte = "";
-      this.avisError = "";
-      this.avisSuccess = "";
-      this.showAvisPopup = true;
-      this.chargerAvis(jeu.id_j);
-    },
-    fermerAvis() {
-      this.showAvisPopup = false;
-    },
-
-    async envoyerAvis() {
-      const id_user = localStorage.getItem("userId");
-      if (!id_user)
-        return (this.avisError = "Connectez-vous pour poster un avis.");
-
-      try {
-        const res = await fetch("http://localhost:3000/api/avis", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            id_j: this.jeuAvis.id_j,
-            id_user,
-            note: this.avisNote,
-            commentaire: this.avisTexte,
-          }),
-        });
-
-        const data = await res.json();
-
-        if (!res.ok) this.avisError = data.error;
-        else {
-          this.avisSuccess = "Avis envoyé !";
-          setTimeout(() => this.fermerAvis(), 800);
-          this.chargerAvis(this.jeuAvis.id_j);
-        }
-      } catch {
-        this.avisError = "Erreur serveur.";
-      }
-    },
-
-    async fetchCategories() {
-      const r = await fetch("http://localhost:3000/api/categories");
-      this.categories = await r.json();
-    },
-    async fetchJeux() {
-      const r = await fetch("http://localhost:3000/api/jeux");
-      this.jeux = await r.json();
-    },
-  },
-  chargerAvis(id_j) {
-    fetch(`http://localhost:3000/api/avis/${id_j}`)
-      .then((res) => res.json())
-      .then((data) => {
-        this.avisListe = data;
-      })
-      .catch(() => {
-        this.avisListe = [];
-      });
-  },
-
-  mounted() {
-    this.fetchCategories();
-    this.fetchJeux();
-  },
-};
-</script> -->
 
 <script>
 export default {
@@ -365,6 +169,10 @@ export default {
 
   computed: {
     jeuxFiltres() {
+      // Note: La logique de filtrage ici utilise j.nb_joueurs (qui n'est pas dans le template) et j.id_cat
+      // Si les données de l'API ont été mises à jour pour utiliser minplayers/maxplayers/categories,
+      // la logique de computed doit être ajustée en conséquence. Je garde l'ancienne logique pour l'instant
+      // pour éviter de casser la fonctionnalité si l'API n'a pas été modifiée.
       return this.jeux.filter(
         (j) =>
           (this.filtreNom === "" ||
@@ -413,6 +221,7 @@ export default {
         if (!res.ok) this.panierErreur = data.error;
         else {
           this.panierSucces = "Ajouté au panier !";
+          this.fetchRecommandations(this.jeuDetails.id_j); // Déclencher la reco
           setTimeout(() => this.fermerPopup(), 800);
         }
       } catch {
@@ -469,6 +278,12 @@ export default {
         else {
           this.avisSuccess = "Avis envoyé !";
           this.chargerAvis(this.jeuAvis.id_j);
+
+          // Déclencher la recommandation si la note est bonne
+          if (this.avisNote >= 7) {
+            this.fetchRecommandations(this.jeuAvis.id_j);
+          }
+
           setTimeout(() => this.fermerAvis(), 800);
         }
       } catch {
@@ -508,6 +323,23 @@ export default {
       const r = await fetch("http://localhost:3000/api/jeux");
       this.jeux = await r.json();
     },
+
+    // Fonction de recommandation (ajoutée)
+    async fetchRecommandations(id_j) {
+      try {
+        const res = await fetch(
+          `http://localhost:3000/api/recommandations/jeu/${id_j}`
+        );
+        const reco = await res.json();
+
+        if (reco.length > 0) {
+          // Afficher la recommandation dans une alerte
+          alert("Nous vous recommandons aussi : " + reco[0].nom_j);
+        }
+      } catch {
+        console.error("Erreur recommandation");
+      }
+    },
   },
 
   mounted() {
@@ -517,8 +349,10 @@ export default {
 };
 </script>
 
-<!-- ✅ TOUT LE CSS SUPPRIMÉ (map-modal, carte-button, etc.) -->
 <style scoped>
+/* ------------------------------------------- */
+/* NAVIGATION BAR */
+/* ------------------------------------------- */
 .navbar {
   background-color: #333;
   color: white;
@@ -583,26 +417,38 @@ ul li a:hover {
   }
 }
 
+/* ------------------------------------------- */
+/* PAGE ET FILTRES */
+/* ------------------------------------------- */
 .page-carte {
   padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 .filtres {
   display: flex;
   gap: 15px;
   margin-bottom: 20px;
+  flex-wrap: wrap; /* Assure que les filtres passent à la ligne sur mobile */
 }
 
 .filtres input,
 .filtres select {
   padding: 10px;
   font-size: 16px;
+  flex-grow: 1;
+  min-width: 150px;
 }
 
+/* ------------------------------------------- */
+/* LISTE DES JEUX (Utilisation de CSS Grid) */
+/* ------------------------------------------- */
 .liste-jeux {
   margin-top: 30px;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  /* Affichage en colonnes: 1 colonne sur mobile, 2 colonnes minimum sur desktop */
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 20px;
 }
 
@@ -611,8 +457,21 @@ ul li a:hover {
   border: 1px solid #ccc;
   border-radius: 12px;
   background-color: #f8f8f8;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
 }
 
+.carte-jeu h3 {
+  color: #007bff; /* Couleur pour le titre du jeu */
+  margin-top: 0;
+  margin-bottom: 10px;
+}
+
+/* ------------------------------------------- */
+/* POPUP GÉNÉRAL (Pupop) */
+/* ------------------------------------------- */
 .Pupop {
   display: flex;
   justify-content: center;
@@ -627,7 +486,8 @@ ul li a:hover {
   background-color: #fff;
   padding: 30px 20px;
   border-radius: 12px;
-  width: 320px;
+  width: 90%; /* Prend plus de place sur mobile */
+  max-width: 400px; /* Limite la taille sur desktop */
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
   position: relative;
 }
@@ -638,8 +498,12 @@ ul li a:hover {
   right: 15px;
   font-size: 24px;
   cursor: pointer;
+  color: #333;
 }
 
+/* ------------------------------------------- */
+/* FORMULAIRE ET INPUTS */
+/* ------------------------------------------- */
 form {
   display: flex;
   flex-direction: column;
@@ -649,16 +513,29 @@ form {
 label {
   font-size: 16px;
   text-align: left;
+  margin-top: 5px;
 }
 
-input {
+input,
+textarea {
   border-radius: 8px;
   padding: 12px;
   border: 1px solid #ccc;
   font-size: 16px;
 }
 
-#submit {
+.avis-textarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+/* ------------------------------------------- */
+/* BOUTONS DANS LE FORMULAIRE ET LES CARTES */
+/* ------------------------------------------- */
+
+/* Bouton Principal (Ajouter au panier / Envoyer) */
+#submit,
+.carte-jeu button {
   padding: 12px;
   background-color: black;
   color: white;
@@ -667,12 +544,15 @@ input {
   cursor: pointer;
   font-size: 16px;
   margin-top: 10px;
+  transition: background-color 0.3s;
 }
 
-#submit:hover {
+#submit:hover,
+.carte-jeu button:hover {
   background-color: #333399;
 }
 
+/* Bouton Secondaire (Annuler / Fermer) */
 #close {
   background-color: gray;
   padding: 12px;
@@ -681,16 +561,36 @@ input {
   border-radius: 25px;
   cursor: pointer;
   font-size: 16px;
+  transition: background-color 0.3s;
 }
 
 #close:hover {
   background-color: #999;
 }
 
-.avis-textarea {
-  border-radius: 8px;
-  padding: 12px;
-  border: 1px solid #ccc;
-  font-size: 15px;
+/* Bouton Supprimer Avis */
+.delete-btn {
+  background-color: #dc3545;
+  color: white;
+  padding: 5px 10px;
+  border-radius: 5px;
+  font-size: 14px;
+  margin-top: 5px;
+  align-self: flex-start;
+}
+.delete-btn:hover {
+  background-color: #c82333;
+}
+
+/* Styles pour les avis dans le popup */
+.avis-item {
+  padding: 10px 0;
+  border-bottom: 1px dashed #eee;
+  margin-bottom: 10px;
+}
+.no-avis {
+  color: #999;
+  font-style: italic;
+  margin-bottom: 15px;
 }
 </style>

@@ -1,24 +1,30 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHistory } from "vue-router";
 
-import Login from '../views/Login.vue'
-import Carte from '../views/Carte.vue'
-import MonCompte from '../views/MonCompte.vue'
-import Admin from '../views/Admin.vue'
-import Panier from '../views/Panier.vue'  
-import NotFound from '../views/NotFound.vue'
+import Login from "../views/Login.vue";
+import Carte from "../views/Carte.vue";
+import MonCompte from "../views/MonCompte.vue";
+import Admin from "../views/Admin.vue";
+import Panier from "../views/Panier.vue";
+import NotFound from "../views/NotFound.vue";
+import Recommandations from "../views/Recommandations.vue";
 
 const routes = [
-  { path: '/', name: 'Login', component: Login },
-  { path: '/carte', name: 'Carte', component: Carte },
-  { path: '/mon-panier', name: 'MonPanier', component: Panier }, 
-  { path: '/mon-compte', name: 'MonCompte', component: MonCompte },
-  { path: '/admin', name: 'Admin', component: Admin },
-  { path: '/:pathMatch(.*)*', name: 'NotFound', component: NotFound }
-]
+  { path: "/", name: "Login", component: Login },
+  { path: "/carte", name: "Carte", component: Carte },
+  { path: "/mon-panier", name: "MonPanier", component: Panier },
+  { path: "/mon-compte", name: "MonCompte", component: MonCompte },
+  { path: "/admin", name: "Admin", component: Admin },
+  { path: "/:pathMatch(.*)*", name: "NotFound", component: NotFound },
+  {
+    path: "/recommandations",
+    name: "Recommandations",
+    component: Recommandations,
+  },
+];
 
 const router = createRouter({
   history: createWebHistory(),
   routes,
-})
+});
 
-export default router
+export default router;
