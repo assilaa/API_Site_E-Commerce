@@ -459,9 +459,45 @@ app.post("/api/panier/ajouter", async (req, res) => {
 });
 
 // --- NOUVELLE ROUTE : Passer la Commande ---
+// --- ROUTE MODIFIÉE : Passer la Commande avec VALIDATION DATE CARTE ---
 app.post("/api/commander", async (req, res) => {
-    const { id_user, id_point, nom_point, lat, lon } = req.body; 
-    // Validation des données...
+    const { id_user, id_point, nom_point, lat, lon, paiement } = req.body; 
+    
+    // ✅ VALIDATION DES DONNÉES + PAIEMENT
+    if (!id_user || !id_point || !nom_point || !lat || !lon || !paiement) {
+        return res.status(400).json({ error: "Données incomplètes (utilisateur, point relais ou paiement manquant)." });
+    }
+
+    // ✅ VALIDATION DATE D'EXPIRATION CARTE
+    try {
+        const [mois, annee] = paiement.expiration.split('/'); // "MM/AA"
+        const moisExp = parseInt(mois);
+        const anneeExp = parseInt(`20${annee}`); // AA → 20AA
+        
+        const dateExp = new Date(anneeExp, moisExp, 0); // Dernier jour du mois
+        const dateAujourdHui = new Date();
+        
+        if (dateExp < dateAujourdHui) {
+            return res.status(400).json({ 
+                error: "La date d'expiration de la carte est dépassée.",
+                date_exp: paiement.expiration
+            });
+        }
+        
+        // ✅ VALIDATION NUMÉRO CARTE (16 chiffres)
+        const numeroNettoye = paiement.numero.replace(/\s/g, '');
+        if (numeroNettoye.length !== 16 || !/^\d{16}$/.test(numeroNettoye)) {
+            return res.status(400).json({ error: "Numéro de carte invalide (16 chiffres requis)." });
+        }
+        
+        // ✅ VALIDATION CVV (3 chiffres)
+        if (!/^\d{3}$/.test(paiement.cvv)) {
+            return res.status(400).json({ error: "CVV invalide (3 chiffres requis)." });
+        }
+        
+    } catch (e) {
+        return res.status(400).json({ error: "Format de carte invalide (MM/AA requis)." });
+    }
 
     // Démarrer la transaction
     await dbRun("BEGIN TRANSACTION;");
@@ -483,15 +519,15 @@ app.post("/api/commander", async (req, res) => {
             return res.status(400).json({ error: "Le panier est vide." });
         }
 
-        // 2. Enregistrer/Mettre à jour le point de retrait
+        // 2. Enregistrer le point de retrait
         await dbRun(
-          'INSERT OR IGNORE INTO POINT_RETRAIT (id_point, nom_point, lat, lon) VALUES (?, ?, ?, ?)',
-          [id_point, nom_point, lat, lon]
+            'INSERT OR IGNORE INTO POINT_RETRAIT (id_point, nom_point, lat, lon) VALUES (?, ?, ?, ?)',
+            [id_point, nom_point, lat, lon]
         );
 
         let montantTotal = 0;
         
-        // 3. Boucler, vérifier stock, enregistrer dans ACHAT, mettre à jour JEU
+        // 3. Traiter chaque article
         for (const item of panierItems) {
             if (item.quantite_panier > item.stock_dispo) {
                 await dbRun("ROLLBACK;");
@@ -500,13 +536,13 @@ app.post("/api/commander", async (req, res) => {
 
             montantTotal += item.prix * item.quantite_panier;
 
-            // Enregistrement de la COMMANDE dans la table ACHAT
+            // Enregistrement dans ACHAT
             await dbRun(
                 'INSERT INTO ACHAT (id_u, id_j, id_point_retrait, date_achat, quantite_achetee) VALUES (?, ?, ?, ?, ?)',
                 [id_user, item.id_j, id_point, date_commande, item.quantite_panier]
             );
 
-            // Mise à jour du stock
+            // Mise à jour stock
             const nouveauStock = item.stock_dispo - item.quantite_panier;
             await dbRun("UPDATE JEU SET quantite = ? WHERE id_j = ?", [nouveauStock, item.id_j]);
         }
@@ -514,19 +550,30 @@ app.post("/api/commander", async (req, res) => {
         // 4. Vider le panier
         await dbRun("DELETE FROM PANIER WHERE id_u = ?", [id_user]);
         
-        // 5. Finaliser la transaction
+        // 5. Enregistrer infos paiement (NOUVELLE TABLE ?)
+        // Pour l'instant on log, tu peux ajouter une table PAIEMENT si besoin
+        console.log(`💳 PAIEMENT ID ${id_user}:`, {
+            numero: paiement.numero.replace(/./g, '*').slice(-4), // **** **** **** 1234
+            expiration: paiement.expiration,
+            titulaire: paiement.titulaire
+        });
+        
+        // 6. Finaliser
         await dbRun("COMMIT;");
 
         return res.status(201).json({
-          message: `Commande enregistrée. Montant total: ${montantTotal.toFixed(2)}€.`,
+            message: `✅ Commande et paiement validés ! Montant: ${montantTotal.toFixed(2)}€`,
+            id_commande: Date.now(), // ID simulé
+            montant_total: montantTotal.toFixed(2)
         });
 
     } catch (error) {
         await dbRun("ROLLBACK;");
-        console.error("ERREUR CRITIQUE PENDANT LA COMMANDE :", error); 
+        console.error("ERREUR COMMANDE :", error); 
         return res.status(500).json({ error: "Erreur lors de la finalisation de la commande." });
     }
 });
+
 
 // --- NOUVELLE ROUTE : Lire le contenu du Panier ---
 app.get("/api/panier/:id_user", async (req, res) => {
