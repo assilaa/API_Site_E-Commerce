@@ -20,13 +20,10 @@
         type="number"
         placeholder="Nombre de joueurs"
       />
+
       <select v-model="filtreCategorie">
         <option value="">Toutes les catégories</option>
-        <option
-          v-for="cat in categories"
-          :key="cat.id_cat"
-          :value="cat.id_cat"
-        >
+        <option v-for="cat in categories" :key="cat.id_cat" :value="cat.id_cat">
           {{ cat.nom_cat }}
         </option>
       </select>
@@ -43,11 +40,14 @@
         <button :disabled="jeu.quantite < 1" @click="ouvrirPopup(jeu)">
           Ajouter au Panier
         </button>
+        <button style="margin-top: 8px" @click="ouvrirPopupAvis(jeu)">
+          ⭐ Avis / Noter
+        </button>
       </div>
     </div>
   </div>
 
-  <!-- ✅ POPUP SIMPLIFIÉ : plus de point relais -->
+  <!-- 🛒 POPUP PANIER (identique) -->
   <div v-if="showPopup" class="Pupop">
     <div class="pupop-container">
       <span class="close" @click="fermerPopup">&times;</span>
@@ -58,9 +58,8 @@
         <p><strong>Quantité disponible :</strong> {{ jeuDetails.quantite }}</p>
         <p><strong>Prix unitaire :</strong> {{ jeuDetails.prix }} €</p>
 
-        <label for="quantiteAchat">Quantité à ajouter</label>
+        <label>Quantité à ajouter</label>
         <input
-          id="quantiteAchat"
           type="number"
           v-model.number="quantiteAchat"
           min="1"
@@ -71,17 +70,50 @@
         <button id="submit" type="submit">Ajouter au Panier</button>
         <button id="close" type="button" @click="fermerPopup">Annuler</button>
 
-        <p v-if="panierErreur" style="color: red;">{{ panierErreur }}</p>
-        <p v-if="panierSucces" style="color: green;">{{ panierSucces }}</p>
+        <p v-if="panierErreur" style="color: red">{{ panierErreur }}</p>
+        <p v-if="panierSucces" style="color: green">{{ panierSucces }}</p>
+      </form>
+    </div>
+  </div>
+
+  <!-- ⭐ POPUP AVIS -->
+  <div v-if="showAvisPopup" class="Pupop">
+    <div class="pupop-container">
+      <span class="close" @click="fermerAvis">&times;</span>
+      <h3>Laisser un avis</h3>
+
+      <p><strong>Jeu :</strong> {{ jeuAvis.nom_j }}</p>
+
+      <form @submit.prevent="envoyerAvis">
+        <label>Note (1 à 10)</label>
+        <input
+          type="number"
+          v-model.number="avisNote"
+          min="1"
+          max="10"
+          required
+        />
+
+        <label>Commentaire</label>
+        <textarea
+          v-model="avisTexte"
+          placeholder="Votre avis..."
+          rows="3"
+          class="avis-textarea"
+          required
+        ></textarea>
+
+        <button id="submit" type="submit">Envoyer</button>
+        <button id="close" type="button" @click="fermerAvis">Annuler</button>
+
+        <p v-if="avisError" style="color: red">{{ avisError }}</p>
+        <p v-if="avisSuccess" style="color: green">{{ avisSuccess }}</p>
       </form>
     </div>
   </div>
 </template>
 
 <script>
-import L from "leaflet";
-import "leaflet/dist/leaflet.css";
-
 export default {
   name: "PageCarte",
 
@@ -95,31 +127,34 @@ export default {
       jeux: [],
       menuOpen: false,
 
-      // popup ajout panier (SIMPLIFIÉ)
+      /* PANIER */
       showPopup: false,
       jeuDetails: null,
       quantiteAchat: 1,
       panierErreur: "",
       panierSucces: "",
+
+      /* AVIS */
+      showAvisPopup: false,
+      jeuAvis: null,
+      avisNote: null,
+      avisTexte: "",
+      avisError: "",
+      avisSuccess: "",
+      avisListe: [],
     };
   },
 
   computed: {
     jeuxFiltres() {
-      return this.jeux.filter((j) => {
-        const matchNom =
-          this.filtreNom === "" ||
-          j.nom_j.toLowerCase().includes(this.filtreNom.toLowerCase());
-
-        const matchCategorie =
-          this.filtreCategorie === "" ||
-          Number(j.id_cat) === Number(this.filtreCategorie);
-
-        const matchJoueurs =
-          !this.filtreJoueurs || j.nb_joueurs === this.filtreJoueurs;
-
-        return matchNom && matchCategorie && matchJoueurs;
-      });
+      return this.jeux.filter(
+        (j) =>
+          (this.filtreNom === "" ||
+            j.nom_j.toLowerCase().includes(this.filtreNom.toLowerCase())) &&
+          (this.filtreCategorie === "" ||
+            Number(j.id_cat) === Number(this.filtreCategorie)) &&
+          (!this.filtreJoueurs || j.nb_joueurs === this.filtreJoueurs)
+      );
     },
   },
 
@@ -130,6 +165,7 @@ export default {
       this.$router.push("/");
     },
 
+    /* PANIER */
     ouvrirPopup(jeu) {
       this.jeuDetails = jeu;
       this.quantiteAchat = 1;
@@ -137,26 +173,13 @@ export default {
       this.panierSucces = "";
       this.showPopup = true;
     },
-
     fermerPopup() {
       this.showPopup = false;
     },
 
     async ajouterAuPanier() {
       const id_user = localStorage.getItem("userId");
-
-      if (!id_user) {
-        this.panierErreur = "Veuillez vous connecter.";
-        return;
-      }
-
-      if (this.quantiteAchat <= 0 || this.quantiteAchat > this.jeuDetails.quantite) {
-        this.panierErreur = "Quantité invalide.";
-        return;
-      }
-
-      this.panierErreur = "";
-      this.panierSucces = "";
+      if (!id_user) return (this.panierErreur = "Veuillez vous connecter.");
 
       try {
         const res = await fetch("http://localhost:3000/api/panier/ajouter", {
@@ -164,49 +187,83 @@ export default {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             id_jeu: this.jeuDetails.id_j,
-            id_user: id_user,
+            id_user,
             quantite_demandee: this.quantiteAchat,
-            // ✅ Plus de point relais ici
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok) this.panierErreur = data.error;
+        else {
+          this.panierSucces = "Ajouté au panier !";
+          setTimeout(() => this.fermerPopup(), 800);
+        }
+      } catch {
+        this.panierErreur = "Erreur de connexion.";
+      }
+    },
+
+    /* AVIS */
+    ouvrirPopupAvis(jeu) {
+      this.jeuAvis = jeu;
+      this.avisNote = "";
+      this.avisTexte = "";
+      this.avisError = "";
+      this.avisSuccess = "";
+      this.showAvisPopup = true;
+      this.chargerAvis(jeu.id_j);
+    },
+    fermerAvis() {
+      this.showAvisPopup = false;
+    },
+
+    async envoyerAvis() {
+      const id_user = localStorage.getItem("userId");
+      if (!id_user)
+        return (this.avisError = "Connectez-vous pour poster un avis.");
+
+      try {
+        const res = await fetch("http://localhost:3000/api/avis", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            id_j: this.jeuAvis.id_j,
+            id_user,
+            note: this.avisNote,
+            commentaire: this.avisTexte,
           }),
         });
 
         const data = await res.json();
 
-        if (!res.ok) {
-          this.panierErreur =
-            data.error || "Erreur inconnue lors de l'ajout au panier.";
-        } else {
-          this.panierSucces = `Article ajouté au panier ! Quantité : ${this.quantiteAchat}.`;
-          setTimeout(() => {
-            this.fermerPopup();
-          }, 1000);
+        if (!res.ok) this.avisError = data.error;
+        else {
+          this.avisSuccess = "Avis envoyé !";
+          setTimeout(() => this.fermerAvis(), 800);
+          this.chargerAvis(this.jeuAvis.id_j);
         }
-      } catch (e) {
-        this.panierErreur = "Erreur réseau lors de l'ajout au panier.";
+      } catch {
+        this.avisError = "Erreur serveur.";
       }
     },
 
     async fetchCategories() {
-      try {
-        const res = await fetch("http://localhost:3000/api/categories");
-        const data = await res.json();
-        this.categories = Array.isArray(data) ? data : [];
-      } catch (e) {
-        console.error("Erreur chargement catégories :", e);
-        this.categories = [];
-      }
+      const r = await fetch("http://localhost:3000/api/categories");
+      this.categories = await r.json();
     },
-
     async fetchJeux() {
-      try {
-        const res = await fetch("http://localhost:3000/api/jeux");
-        const data = await res.json();
-        this.jeux = Array.isArray(data) ? data : [];
-      } catch (e) {
-        console.error("Erreur chargement jeux :", e);
-        this.jeux = [];
-      }
+      const r = await fetch("http://localhost:3000/api/jeux");
+      this.jeux = await r.json();
     },
+  },
+  chargerAvis(id_j) {
+    fetch(`http://localhost:3000/api/avis/${id_j}`)
+      .then((res) => res.json())
+      .then((data) => {
+        this.avisListe = data;
+      })
+      .catch(() => {
+        this.avisListe = [];
+      });
   },
 
   mounted() {
@@ -384,5 +441,12 @@ input {
 
 #close:hover {
   background-color: #999;
+}
+
+.avis-textarea {
+  border-radius: 8px;
+  padding: 12px;
+  border: 1px solid #ccc;
+  font-size: 15px;
 }
 </style>
