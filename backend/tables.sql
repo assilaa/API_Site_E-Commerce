@@ -120,6 +120,18 @@ CREATE TABLE IF NOT EXISTS POINT_RETRAIT (
     lon REAL NOT NULL
 );
 
+-- 12. LIKER (Utilisateur aime un jeu)
+CREATE TABLE IF NOT EXISTS LIKER (
+    id_u INTEGER NOT NULL,
+    id_j INTEGER NOT NULL,
+    date_like DATE DEFAULT CURRENT_DATE,
+    PRIMARY KEY (id_u, id_j),
+    FOREIGN KEY (id_u) REFERENCES UTILISATEUR(id_u),
+    FOREIGN KEY (id_j) REFERENCES JEU(id_j)
+);
+
+
+
 
 -- TABLES DE LIAISON (Relations)
 

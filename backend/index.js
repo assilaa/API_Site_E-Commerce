@@ -462,6 +462,92 @@ app.get("/api/mes-achats/:id", async (req, res) => {
   }
 });
 
+// LIKER 
+
+app.post("/api/like", (req, res) => {
+  const { id_user, id_j } = req.body;
+
+  if (!id_user || !id_j) {
+    return res.status(400).json({ error: "Paramètres manquants." });
+  }
+
+  db.run(
+    `INSERT OR IGNORE INTO LIKER (id_u, id_j) VALUES (?, ?)`,
+    [id_user, id_j],
+    (err) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json({ success: true });
+    }
+  );
+});
+
+
+// ===============================
+// RECOMMANDATIONS BASÉES SUR UN JEU
+// ===============================
+app.get("/api/recommandations/jeu/:id_j", (req, res) => {
+  const { id_j } = req.params;
+
+  // On part du jeu j1, et on prend d'autres jeux j2 de la même catégorie texte
+  const sql = `
+    SELECT j2.*
+    FROM JEU j1
+    JOIN JEU j2 ON j1.categorie = j2.categorie
+    WHERE j1.id_j = ?
+      AND j2.id_j != j1.id_j
+    ORDER BY j2.nom_j
+    LIMIT 3;
+  `;
+
+  db.all(sql, [id_j], (err, rows) => {
+    if (err) {
+      console.log("❌ ERREUR RECOMMANDATION JEU :", err);
+      return res.status(500).json({ error: "Erreur serveur." });
+    }
+    return res.json(rows);
+  });
+});
+
+// ===============================
+// RECOMMANDATIONS BASÉES SUR L'HISTORIQUE D'AVIS D'UN UTILISATEUR
+// ===============================
+app.get("/api/recommandations/utilisateur/:id_u", (req, res) => {
+  const { id_u } = req.params;
+
+  const sql = `
+    SELECT DISTINCT j2.*
+    FROM LAISSER_UN_AVIS a
+    JOIN JEU j1 ON a.id_j = j1.id_j
+    JOIN JEU j2 ON j1.categorie = j2.categorie
+    WHERE a.id_u = ?
+      AND a.note >= 7               -- on ne garde que les jeux bien notés
+      AND j2.id_j != j1.id_j        -- on évite de reproposer EXACTEMENT le même
+    ORDER BY j2.nom_j
+    LIMIT 15;
+  `;
+
+  db.all(sql, [id_u], (err, rows) => {
+    if (err) {
+      console.log("❌ ERREUR RECOMMANDATION UTILISATEUR :", err);
+      return res.status(500).json({ error: "Erreur serveur." });
+    }
+    return res.json(rows);
+  });
+});
+
+
+
+// 🔍 ROUTE DEBUG : Voir les colonnes de la table JEU
+app.get("/api/dev/structure-jeu", (req, res) => {
+  db.all("PRAGMA table_info(JEU);", [], (err, rows) => {
+    if (err) {
+      console.error("Erreur PRAGMA:", err);
+      return res.status(500).json({ error: "Erreur PRAGMA." });
+    }
+    res.json(rows);
+  });
+});
+
 
 // ===============================================
 // ADMIN : Liste complète de toutes les commandes
@@ -724,6 +810,84 @@ app.post("/api/commander", async (req, res) => {
     }
 });
 
+
+
+// AVIS 
+
+app.post("/api/avis", (req, res) => {
+  const { id_j, id_user, note, commentaire } = req.body;
+
+  if (!id_user || !id_j || !note) {
+    return res.status(400).json({ error: "Champs manquants." });
+  }
+
+  const sql = `
+    INSERT INTO LAISSER_UN_AVIS (id_u, id_j, avis, note)
+    VALUES (?, ?, ?, ?)
+  `;
+
+  db.run(sql, [id_user, id_j, commentaire, note], (err) => {
+    if (err) {
+      if (err.message.includes("UNIQUE")) {
+        return res.status(400).json({ error: "Vous avez déjà laissé un avis pour ce jeu." });
+      }
+      return res.status(500).json({ error: "Erreur serveur." });
+    }
+
+    return res.json({ message: "Avis ajouté !" });
+  });
+});
+
+app.get("/api/avis/:id_j", (req, res) => {
+  const { id_j } = req.params;
+
+  const sql = `
+    SELECT 
+      L.id_u,
+      L.id_j,
+      L.note,
+      L.avis,
+      L.date_publication,
+      U.prenom_u AS prenom,
+      U.nom_u AS nom
+    FROM LAISSER_UN_AVIS L
+    JOIN UTILISATEUR U ON L.id_u = U.id_u
+    WHERE L.id_j = ?
+    ORDER BY L.date_publication DESC
+  `;
+
+  db.all(sql, [id_j], (err, rows) => {
+    if (err) {
+      console.log("❌ ERREUR SQL /api/avis :", err.message);
+      return res.status(500).json({ error: err.message });
+    }
+
+    return res.json(rows);
+  });
+});
+
+
+
+app.delete("/api/avis/:id_j/:id_user", (req, res) => {
+  const { id_j, id_user } = req.params;
+
+  const sql = `
+    DELETE FROM LAISSER_UN_AVIS
+    WHERE id_j = ? AND id_u = ?
+  `;
+
+  db.run(sql, [id_j, id_user], function (err) {
+    if (err) {
+      return res.status(500).json({ error: "Erreur serveur." });
+    }
+
+    if (this.changes === 0) {
+      return res.status(403).json({ error: "Non autorisé." });
+    }
+
+    return res.json({ message: "Avis supprimé." });
+  });
+});
 
 
 

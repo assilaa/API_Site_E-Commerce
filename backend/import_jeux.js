@@ -1,13 +1,9 @@
 const sqlite3 = require("sqlite3").verbose();
 const path = require("path");
 
-// ⚠ adapte le chemin si besoin (ici on suppose que jeux.json est dans le même dossier)
 const JEUX_JSON_PATH = path.join(__dirname, "jeux.json");
-
-// Chargement du JSON
 const jeux = require(JEUX_JSON_PATH);
 
-// Connexion à la base
 const db = new sqlite3.Database(path.join(__dirname, "bdd.db"));
 
 db.serialize(() => {
@@ -21,8 +17,9 @@ db.serialize(() => {
     console.log("📥 Insertion des jeux depuis jeux.json...");
 
     const stmt = db.prepare(`
-      INSERT INTO JEU (id_j, nom_j, prix, note_moyenne, users_rated, quantite, annee_publication)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO JEU 
+      (id_j, nom_j, prix, note_moyenne, users_rated, quantite, annee_publication, categorie, min_players, max_players, description)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
 
     jeux.forEach((g) => {
@@ -34,22 +31,46 @@ db.serialize(() => {
       const year = parseInt(g.yearpublished || 0, 10);
       const quantite = 50;
 
-      stmt.run(id, nom, prix, note, users, quantite, year, (err2) => {
-        if (err2) {
-          console.error(
-            `Erreur insertion jeu id=${id} (${nom}) :`,
-            err2.message
-          );
+      // NOUVEAU ↓↓↓
+      const categorie = (() => {
+        if (!g.boardgamecategory) return "";
+
+        // Exemple : "['Negotiation']"
+        let raw = g.boardgamecategory;
+
+        // Nettoyage : enlever [ ] et ' '
+        raw = raw.replace(/[\[\]']+/g, "");
+
+        // Garder le premier élément si plusieurs catégories séparées par virgules
+        return raw.split(",")[0].trim();
+      })();
+
+      const minPlayers = g.minplayers || null;
+      const maxPlayers = g.maxplayers || null;
+      const description = g.description || "Aucune description disponible";
+
+      stmt.run(
+        id,
+        nom,
+        prix,
+        note,
+        users,
+        quantite,
+        year,
+        categorie,
+        minPlayers,
+        maxPlayers,
+        description,
+        (err2) => {
+          if (err2) {
+            console.error(`Erreur insertion jeu id=${id} (${nom}) :`, err2.message);
+          }
         }
-      });
+      );
     });
 
-    stmt.finalize((err3) => {
-      if (err3) {
-        console.error("Erreur finalisation statement :", err3.message);
-      } else {
-        console.log("✅ Import des jeux terminé avec succès.");
-      }
+    stmt.finalize(() => {
+      console.log("✅ Import terminé.");
       db.close();
     });
   });
