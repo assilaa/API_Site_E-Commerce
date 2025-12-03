@@ -21,9 +21,9 @@ const avisRoutes = require("./routes/avis.js");
 app.use("/api/avis", avisRoutes);
 const port = 3000;
 const db = new sqlite3.Database("./bdd.db");
-const recoRoutes = require("./routes/reco.js");
-app.use("/api/reco-ia", recoRoutes);
-app.use("/api/recommend", require("./routes/recommend"));
+// const recoRoutes = require("./routes/reco.js");
+// app.use("/api/reco-ia", recoRoutes);
+// app.use("/api/recommend", require("./routes/recommend"));
 const recommandationsRoutes = require("./routes/recommandations.js");
 app.use("/api/recommandations", recommandationsRoutes);
 

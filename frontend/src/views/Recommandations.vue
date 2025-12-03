@@ -16,7 +16,7 @@
   </nav>
 
   <div class="page-reco">
-    <h2>🎯 Vos recommandations personnalisées</h2>
+    <h2>Vos recommandations personnalisées</h2>
 
     <div v-if="loading">Chargement des recommandations...</div>
 
@@ -34,7 +34,24 @@
         <p>Joueurs : {{ j.minplayers }}–{{ j.maxplayers }}</p>
         <p>{{ j.description }}</p>
 
-        <button>Voir Détails</button>
+        <!-- <button @click="chargerAvis(j.id_j)">Voir les avis</button> -->
+
+        <!-- AFFICHAGE DES AVIS -->
+        <div class="avis-block" v-if="avis[j.id_j] && avis[j.id_j].length > 0">
+          <h4>Avis :</h4>
+          <div class="avis-item" v-for="a in avis[j.id_j]" :key="a.id_avis">
+            <p>
+              <strong>Note : {{ a.note }}/10</strong>
+            </p>
+            <p>{{ a.commentaire }}</p>
+            <small>{{ a.date_avis }}</small>
+            <hr />
+          </div>
+        </div>
+
+        <div v-else-if="avis[j.id_j] && avis[j.id_j].length === 0">
+          <p>Aucun avis pour ce jeu.</p>
+        </div>
       </div>
     </div>
   </div>
@@ -47,15 +64,28 @@ export default {
   data() {
     return {
       reco: [],
+      avis: {}, // <-- liste des avis par jeu
       loading: true,
       menuOpen: false,
     };
   },
+
   methods: {
     logout() {
       localStorage.removeItem("role");
       localStorage.removeItem("userId");
       this.$router.push("/");
+    },
+
+    async chargerAvis(id_j) {
+      try {
+        const res = await fetch(`http://localhost:3000/api/avis/${id_j}`);
+        const data = await res.json();
+
+        this.$set(this.avis, id_j, data); // Vue 2 compatible
+      } catch (err) {
+        console.error("Erreur récupération avis:", err);
+      }
     },
   },
 
@@ -99,7 +129,7 @@ export default {
 
 <style scoped>
 /* ------------------------------------------- */
-/* NAVIGATION BAR (Copie de Carte.vue) */
+/* NAVIGATION BAR */
 /* ------------------------------------------- */
 .navbar {
   background-color: #333;
@@ -170,13 +200,13 @@ ul li a:hover {
 /* ------------------------------------------- */
 .page-reco {
   padding: 20px;
-  max-width: 1200px; /* Ajout d'une largeur max pour centrer le contenu */
+  max-width: 1200px;
   margin: 0 auto;
 }
 
 .liste-jeux {
   margin-top: 30px;
-  display: grid; /* Utilisation de Grid pour un affichage plus moderne */
+  display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 20px;
 }
@@ -186,26 +216,23 @@ ul li a:hover {
   border: 1px solid #ccc;
   border-radius: 12px;
   background-color: #f8f8f8;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
-.carte-jeu h3 {
-  color: #007bff;
-  margin-top: 0;
+/* Avis */
+.avis-block {
+  margin-top: 10px;
+  background: #ffffff;
+  border-radius: 8px;
+  padding: 10px;
+  border: 1px solid #ddd;
+}
+
+.avis-item {
   margin-bottom: 10px;
 }
 
-.carte-jeu p {
-  margin: 5px 0;
-  font-size: 15px;
-}
-
-/* ------------------------------------------- */
-/* BOUTONS (Basé sur le style du popup) */
-/* ------------------------------------------- */
+/* Bouton */
 .carte-jeu button {
   padding: 12px;
   background-color: black;
@@ -220,5 +247,31 @@ ul li a:hover {
 
 .carte-jeu button:hover {
   background-color: #333399;
+}
+
+.carte-jeu {
+  padding: 15px;
+  border: 1px solid #ccc;
+  border-radius: 12px;
+  background-color: #f8f8f8;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  max-height: 350px; /* Limite la hauteur */
+  overflow: hidden; /* Cache le dépassement */
+}
+
+.carte-jeu p {
+  overflow-y: auto; /* Scroll si texte long */
+  max-height: 160px; /* Limite la description */
+}
+
+.liste-jeux {
+  display: grid;
+  grid-template-columns: repeat(
+    auto-fit,
+    minmax(240px, 1fr)
+  ); /* Cartes plus petites */
+  gap: 20px;
 }
 </style>
