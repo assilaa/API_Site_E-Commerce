@@ -32,22 +32,42 @@
       </select>
     </div>
 
-    <div class="liste-jeux">
+    <!-- 🟦 CONTENEUR GRID POUR AVOIR 3 JEUX PAR LIGNE -->
+    <div class="grid-jeux">
       <div v-for="jeu in jeuxFiltres" :key="jeu.id_j" class="carte-jeu">
         <h3>{{ jeu.nom_j }}</h3>
+
         <p>Catégories : {{ jeu.categories || "Non renseigné" }}</p>
         <p>Joueurs : {{ jeu.minplayers }} - {{ jeu.maxplayers }}</p>
         <p>Prix unitaire : {{ jeu.prix }} €</p>
         <p>En stock : {{ jeu.quantite }}</p>
 
+        <p class="description-jeu">
+          {{
+            jeu.description.length > 100
+              ? jeu.description.substring(0, 100) + "..."
+              : jeu.description
+          }}
+
+          <button
+            v-if="jeu.description.length > 100"
+            class="btn-lire-plus"
+            @click="ouvrirDescription(jeu)"
+          >
+            Lire plus
+          </button>
+        </p>
+
         <button :disabled="jeu.quantite < 1" @click="ouvrirPopup(jeu)">
           Ajouter au Panier
         </button>
+
         <button style="margin-top: 8px" @click="ouvrirPopupAvis(jeu)">
           ⭐ Avis / Noter
         </button>
       </div>
     </div>
+    <!-- 🟦 FIN DU GRID -->
   </div>
 
   <div v-if="showPopup" class="Pupop">
@@ -132,6 +152,19 @@
       </form>
     </div>
   </div>
+  <div v-if="showDescPopup" class="Pupop">
+    <div class="pupop-container">
+      <span class="close" @click="fermerDescription">&times;</span>
+
+      <h3>{{ descJeu.nom_j }}</h3>
+
+      <p style="white-space: pre-line">
+        {{ descJeu.description }}
+      </p>
+
+      <button id="close" @click="fermerDescription">Fermer</button>
+    </div>
+  </div>
 </template>
 
 <script>
@@ -147,6 +180,8 @@ export default {
       categories: [],
       jeux: [],
       menuOpen: false,
+      showDescPopup: false,
+      descJeu: {},
 
       /* PANIER */
       showPopup: false,
@@ -167,20 +202,54 @@ export default {
     };
   },
 
+  // computed: {
+  //   jeuxFiltres() {
+  //     // Note: La logique de filtrage ici utilise j.nb_joueurs (qui n'est pas dans le template) et j.id_cat
+  //     // Si les données de l'API ont été mises à jour pour utiliser minplayers/maxplayers/categories,
+  //     // la logique de computed doit être ajustée en conséquence. Je garde l'ancienne logique pour l'instant
+  //     // pour éviter de casser la fonctionnalité si l'API n'a pas été modifiée.
+  //     return this.jeux.filter(
+  //       (j) =>
+  //         (this.filtreNom === "" ||
+  //           j.nom_j.toLowerCase().includes(this.filtreNom.toLowerCase())) &&
+  //         (this.filtreCategorie === "" ||
+  //           Number(j.id_cat) === Number(this.filtreCategorie)) &&
+  //         (!this.filtreJoueurs || j.nb_joueurs === this.filtreJoueurs)
+  //     );
+  //   },
+  // },
   computed: {
     jeuxFiltres() {
-      // Note: La logique de filtrage ici utilise j.nb_joueurs (qui n'est pas dans le template) et j.id_cat
-      // Si les données de l'API ont été mises à jour pour utiliser minplayers/maxplayers/categories,
-      // la logique de computed doit être ajustée en conséquence. Je garde l'ancienne logique pour l'instant
-      // pour éviter de casser la fonctionnalité si l'API n'a pas été modifiée.
-      return this.jeux.filter(
-        (j) =>
-          (this.filtreNom === "" ||
-            j.nom_j.toLowerCase().includes(this.filtreNom.toLowerCase())) &&
-          (this.filtreCategorie === "" ||
-            Number(j.id_cat) === Number(this.filtreCategorie)) &&
-          (!this.filtreJoueurs || j.nb_joueurs === this.filtreJoueurs)
-      );
+      return this.jeux.filter((j) => {
+        /* --- FILTRE NOM --- */
+        const matchNom =
+          this.filtreNom === "" ||
+          j.nom_j.toLowerCase().includes(this.filtreNom.toLowerCase());
+
+        /* --- FILTRE CATEGORIE --- */
+        const matchCategorie =
+          this.filtreCategorie === "" ||
+          Number(j.id_cat) === Number(this.filtreCategorie) ||
+          (j.categories &&
+            j.categories
+              .toString()
+              .toLowerCase()
+              .includes(
+                this.categories
+                  .find(
+                    (c) => Number(c.id_cat) === Number(this.filtreCategorie)
+                  )
+                  ?.nom_cat?.toLowerCase() || ""
+              ));
+
+        /* --- FILTRE NOMBRE DE JOUEURS --- */
+        const matchJoueurs =
+          !this.filtreJoueurs ||
+          (Number(j.minplayers) <= Number(this.filtreJoueurs) &&
+            Number(j.maxplayers) >= Number(this.filtreJoueurs));
+
+        return matchNom && matchCategorie && matchJoueurs;
+      });
     },
   },
 
@@ -189,6 +258,14 @@ export default {
       localStorage.removeItem("role");
       localStorage.removeItem("userId");
       this.$router.push("/");
+    },
+    ouvrirDescription(jeu) {
+      this.descJeu = jeu;
+      this.showDescPopup = true;
+    },
+
+    fermerDescription() {
+      this.showDescPopup = false;
     },
 
     /* ---------------- PANIER ---------------- */
@@ -469,6 +546,26 @@ ul li a:hover {
   margin-bottom: 10px;
 }
 
+/* .grid-jeux {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 25px;
+  margin-top: 20px;
+} */
+
+.grid-jeux {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 25px;
+}
+
+.carte-jeu {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+}
+
 /* ------------------------------------------- */
 /* POPUP GÉNÉRAL (Pupop) */
 /* ------------------------------------------- */
@@ -592,5 +689,29 @@ textarea {
   color: #999;
   font-style: italic;
   margin-bottom: 15px;
+}
+
+.description {
+  font-size: 14px;
+  color: #444;
+  margin: 10px 0;
+  line-height: 1.4;
+  max-height: 140px;
+  overflow: hidden;
+}
+
+.btn-lire-plus {
+  background: transparent;
+  color: #007bff;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  margin-left: 8px;
+  text-decoration: underline;
+  padding: 0;
+}
+
+.btn-lire-plus:hover {
+  color: #0056b3;
 }
 </style>
