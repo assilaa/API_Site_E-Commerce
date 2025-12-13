@@ -82,47 +82,65 @@ export default {
   
   methods: {
     getAchats() {
-      const userId = localStorage.getItem("userId");
-      if (!userId) {
-        this.$router.push({ name: "Login" });
-        return;
-      }
+  const userId = localStorage.getItem("userId");
+  const token = localStorage.getItem("token"); // tu dois le stocker au login
 
-      fetch(`http://localhost:3000/api/mes-achats/${userId}`)
-        .then(res => res.json())
-        .then(data => {
-          const commandesGroupées = this.groupByCommande(data);
-          this.commandes = commandesGroupées;
-        })
-        .catch(err => {
-          console.error("Erreur achats:", err);
-        });
+  if (!userId || !token) {
+    this.$router.push({ name: "Login" });
+    return;
+  }
+
+  fetch(`http://localhost:3000/api/mes-achats/${userId}`, {
+    headers: {
+      Authorization: "Bearer " + token,
     },
+  })
+    .then(async (res) => {
+      if (!res.ok) {
+        // si 401 ou autre, on remonte une erreur claire
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || `HTTP ${res.status}`);
+      }
+      return res.json();
+    })
+    .then((data) => {
+      const commandesGroupées = this.groupByCommande(data || []);
+      this.commandes = commandesGroupées;
+    })
+    .catch((err) => {
+      console.error("Erreur achats:", err);
+      this.commandes = [];
+    });
+}
+,
 
     groupByCommande(achats) {
-      const commandes = {};
-      
-      achats.forEach(achat => {
-        const dateKey = achat.date_achat.split('T')[0];
-        
-        if (!commandes[dateKey]) {
-          commandes[dateKey] = {
-            id_commande: this.genererIdCommande(dateKey),
-            date_commande: achat.date_achat,
-            nom_point: achat.nom_point,
-            total: 0,
-            articles: [],
-            showDetails: false
-          };
-        }
-        
-        commandes[dateKey].articles.push(achat);
-        commandes[dateKey].total += achat.quantite_achetee * achat.prix;
-      });
+  const list = Array.isArray(achats) ? achats : [];
+  const commandes = {};
 
-      return Object.values(commandes)
-        .sort((a, b) => new Date(b.date_commande) - new Date(a.date_commande));
-    },
+  list.forEach((achat) => {
+    const dateKey = achat.date_achat.split("T")[0];
+
+    if (!commandes[dateKey]) {
+      commandes[dateKey] = {
+        id_commande: this.genererIdCommande(dateKey),
+        date_commande: achat.date_achat,
+        nom_point: achat.nom_point,
+        total: 0,
+        articles: [],
+        showDetails: false,
+      };
+    }
+
+    commandes[dateKey].articles.push(achat);
+    commandes[dateKey].total += achat.quantite_achetee * achat.prix;
+  });
+
+  return Object.values(commandes).sort(
+    (a, b) => new Date(b.date_commande) - new Date(a.date_commande)
+  );
+}
+,
 
     genererIdCommande(dateKey) {
       return dateKey.replace(/-/g, '') + Math.floor(Math.random() * 1000);

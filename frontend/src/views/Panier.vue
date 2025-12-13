@@ -21,28 +21,17 @@
 
     <div v-else class="panier-grid">
       <div class="liste-articles">
-        <div
-          v-for="item in panier"
-          :key="item.id_panier_ligne"
-          class="article-panier"
-        >
+        <div v-for="item in panier" :key="item.id_panier_ligne" class="article-panier">
           <div class="details-article">
             <h4>{{ item.nom_j }}</h4>
             <p>Prix unitaire : <strong>{{ item.prix }} €</strong></p>
             <p>Quantité : <strong>{{ item.quantite_panier }}</strong></p>
             <p>Sous-total : <strong>{{ (item.prix * item.quantite_panier).toFixed(2) }} €</strong></p>
-            <p
-              v-if="item.quantite_panier > item.stock_dispo"
-              class="stock-alerte"
-            >
+            <p v-if="item.quantite_panier > item.stock_dispo" class="stock-alerte">
               Stock insuffisant (Max: {{ item.stock_dispo }})
             </p>
           </div>
-          <button
-            @click="supprimerArticle(item.id_panier_ligne)"
-            class="btn-supprimer"
-            type="button"
-          >
+          <button @click="supprimerArticle(item.id_panier_ligne)" class="btn-supprimer" type="button">
             Supprimer
           </button>
         </div>
@@ -50,90 +39,49 @@
 
       <div class="recap-commande">
         <h3>Récapitulatif</h3>
-        <p class="total">
-          Total à payer : <strong>{{ totalPanier.toFixed(2) }} €</strong>
-        </p>
+        <p class="total">Total à payer : <strong>{{ totalPanier.toFixed(2) }} €</strong></p>
 
-        <!-- ✅ POINT RELAIS UNIQUEMENT SI PAS EN PAIEMENT -->
         <div v-if="!showPaiement" class="point-retrait-choix">
           <h4>Point de retrait</h4>
           <p v-if="selectedPickup" class="point-selectionne">
-            📍 <strong>{{ selectedPickup.nom }}</strong>
-            ({{ selectedPickup.distance.toFixed(1) }} km)
+            📍 <strong>{{ selectedPickup.nom }}</strong> ({{ selectedPickup.distance.toFixed(1) }} km)
           </p>
-          <p v-else class="point-manquant">
-            Veuillez choisir un point de retrait.
-          </p>
-
-          <button
-            @click="ouvrirCarte"
-            class="btn-choisir-map"
-            :disabled="!lat || !lon || pointsRetrait.length === 0"
-            type="button"
-          >
+          <p v-else class="point-manquant">Veuillez choisir un point de retrait.</p>
+          <button @click="ouvrirCarte" class="btn-choisir-map" 
+                  :disabled="!lat || !lon || pointsRetrait.length === 0" type="button">
             Choisir sur la carte
           </button>
         </div>
 
-        <!-- ✅ BOUTON VALIDER (UNIQUEMENT SI PAS EN PAIEMENT) -->
-        <button
-          v-if="!showPaiement"
-          @click="validerCommande"
-          :disabled="!commandePrete"
-          class="btn-valider"
-          type="button"
-        >
+        <button v-if="!showPaiement" @click="validerCommande" :disabled="!commandePrete" 
+                class="btn-valider" type="button">
           Valider la commande
         </button>
 
-        <!-- ✅ FORMULAIRE PAIEMENT (APPEARS APRÈS VALIDATION) -->
         <div v-if="showPaiement" class="formulaire-paiement">
           <h4>💳 Paiement sécurisé</h4>
           
           <div class="champ-paiement">
             <label>Numéro de carte</label>
-            <input
-              v-model="numeroCarte"
-              type="text"
-              placeholder="1234 5678 9012 3456"
-              maxlength="19"
-              @input="formatCarte"
-              required
-            />
+            <input v-model="numeroCarte" type="text" placeholder="1234 5678 9012 3456" 
+                   maxlength="19" @input="formatCarte" required />
           </div>
 
           <div class="champs-paiement-row">
             <div class="champ-paiement">
               <label>Date d'expiration</label>
-              <input
-                v-model="dateExpiration"
-                type="text"
-                placeholder="MM/AA"
-                maxlength="5"
-                @input="formatDate"
-                required
-              />
+              <input v-model="dateExpiration" type="text" placeholder="MM/AA" maxlength="5" 
+                     @input="formatDate" required />
             </div>
             <div class="champ-paiement">
               <label>CVV</label>
-              <input
-                v-model="cvv"
-                type="text"
-                placeholder="123"
-                maxlength="3"
-                required
-              />
+              <input v-model="cvv" type="text" placeholder="123" maxlength="3" required />
             </div>
           </div>
 
           <div class="champ-paiement">
             <label>Nom sur la carte</label>
-            <input
-              v-model="nomTitulaire"
-              type="text"
-              placeholder="JEAN DUPONT"
-              required
-            />
+            <input v-model="nomTitulaire" type="text" placeholder="JEAN DUPONT" required />
           </div>
 
           <button @click="confirmerPaiement" class="btn-payer">
@@ -141,23 +89,16 @@
           </button>
         </div>
 
-        <p v-if="commandeErreur" class="message-erreur">
-          {{ commandeErreur }}
-        </p>
-        <p v-if="commandeSucces" class="message-succes">
-          {{ commandeSucces }}
-        </p>
+        <p v-if="commandeErreur" class="message-erreur">{{ commandeErreur }}</p>
+        <p v-if="commandeSucces" class="message-succes">{{ commandeSucces }}</p>
       </div>
     </div>
   </div>
 
-  <!-- ✅ CARTE UNIQUEMENT SI PAS EN PAIEMENT -->
   <div v-if="showMap && !showPaiement" class="map-modal">
     <div class="map-container">
       <div id="pickupMap" class="map"></div>
-      <button @click="fermerCarte" class="close-map" type="button">
-        Fermer
-      </button>
+      <button @click="fermerCarte" class="close-map" type="button">Fermer</button>
     </div>
   </div>
 </template>
@@ -175,11 +116,7 @@ export default {
       panier: [],
       chargement: true,
       erreurPanier: "",
-
-      // Navbar
       menuOpen: false,
-
-      // Variables pour le point de retrait ✅ AJOUTÉES
       showMap: false,
       map: null,
       markers: [],
@@ -187,14 +124,11 @@ export default {
       lat: null,
       lon: null,
       pointsRetrait: [],
-
-      // ÉTAT PAIEMENT
       showPaiement: false,
       numeroCarte: "",
       dateExpiration: "",
       cvv: "",
       nomTitulaire: "",
-
       commandeErreur: "",
       commandeSucces: "",
     };
@@ -202,11 +136,8 @@ export default {
 
   computed: {
     totalPanier() {
-      return this.panier.reduce((total, item) => {
-        return total + item.prix * item.quantite_panier;
-      }, 0);
+      return this.panier.reduce((total, item) => total + item.prix * item.quantite_panier, 0);
     },
-
     commandePrete() {
       return this.panier.length > 0 && this.selectedPickup !== null;
     },
@@ -215,16 +146,24 @@ export default {
   watch: {
     showMap(val) {
       if (val) {
-        this.$nextTick(() => {
-          this.initializeMap(); // ✅ CETTE MÉTHODE MANquait !
-        });
+        this.$nextTick(() => this.initializeMap());
       }
     },
   },
 
   methods: {
+    getAuthHeaders() {
+      const token = localStorage.getItem("token");
+      return {
+        "Content-Type": "application/json",
+        ...(token && { "Authorization": `Bearer ${token}` })
+      };
+    },
+
     logout() {
+      localStorage.removeItem("token");
       localStorage.removeItem("userId");
+      localStorage.removeItem("role");
       this.$router.push("/");
     },
 
@@ -238,8 +177,7 @@ export default {
 
     validerCommande() {
       if (!this.commandePrete) {
-        this.commandeErreur =
-          "Veuillez choisir un point de retrait et avoir des articles dans le panier.";
+        this.commandeErreur = "Veuillez choisir un point de retrait et avoir des articles dans le panier.";
         return;
       }
       this.showPaiement = true;
@@ -249,8 +187,7 @@ export default {
     formatCarte() {
       let value = this.numeroCarte.replace(/\s/g, '').replace(/[^0-9]/gi, '');
       let matches = value.match(/.{1,4}/g);
-      let match = matches ? matches.join(' ') : '';
-      this.numeroCarte = match;
+      this.numeroCarte = matches ? matches.join(' ') : '';
     },
 
     formatDate() {
@@ -272,9 +209,8 @@ export default {
       try {
         const res = await fetch("http://localhost:3000/api/commander", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: this.getAuthHeaders(),  // ✅ JWT automatique
           body: JSON.stringify({
-            id_user: this.userId,
             id_point: this.selectedPickup.id,
             lat: this.selectedPickup.lat,
             lon: this.selectedPickup.lon,
@@ -300,9 +236,7 @@ export default {
           this.dateExpiration = "";
           this.cvv = "";
           this.nomTitulaire = "";
-          setTimeout(() => {
-            this.$router.push("/mon-compte");
-          }, 2000);
+          setTimeout(() => this.$router.push("/mon-compte"), 2000);
         }
       } catch (e) {
         this.commandeErreur = "Erreur réseau lors du paiement.";
@@ -312,15 +246,16 @@ export default {
     async fetchPanier() {
       this.chargement = true;
       this.userId = localStorage.getItem("userId");
-      if (!this.userId) {
+      
+      if (!this.userId || !localStorage.getItem("token")) {
         this.$router.push("/");
         return;
       }
 
       try {
-        const res = await fetch(
-          `http://localhost:3000/api/panier/${this.userId}`
-        );
+        const res = await fetch(`http://localhost:3000/api/panier/${this.userId}`, {
+          headers: this.getAuthHeaders()  // ✅ JWT automatique
+        });
         const data = await res.json();
 
         if (!res.ok) {
@@ -340,78 +275,51 @@ export default {
 
     async supprimerArticle(id_panier_ligne) {
       try {
-        await fetch(
-          `http://localhost:3000/api/panier/ligne/${id_panier_ligne}`,
-          { method: "DELETE" }
-        );
-        await this.fetchPanier();
+        const res = await fetch(`http://localhost:3000/api/panier/ligne/${id_panier_ligne}`, {
+          method: "DELETE",
+          headers: this.getAuthHeaders()  // ✅ JWT automatique
+        });
+        
+        if (res.ok) {
+          await this.fetchPanier();
+        } else {
+          this.erreurPanier = "Erreur lors de la suppression.";
+        }
       } catch (e) {
-        this.erreurPanier = "Erreur réseau lors de la suppression de l'article.";
+        this.erreurPanier = "Erreur réseau lors de la suppression.";
       }
     },
 
-    // ✅ MÉTHODES CARTE MANQUANTES !!!!
     distance(p1, p2) {
       const R = 6371;
       const dLat = (p2.lat - p1.lat) * Math.PI / 180;
       const dLon = (p2.lon - p1.lon) * Math.PI / 180;
-
-      const a =
-        Math.sin(dLat / 2) ** 2 +
-        Math.cos(p1.lat * Math.PI / 180) *
-          Math.cos(p2.lat * Math.PI / 180) *
-          Math.sin(dLon / 2) ** 2;
-
+      const a = Math.sin(dLat / 2) ** 2 + Math.cos(p1.lat * Math.PI / 180) * 
+                Math.cos(p2.lat * Math.PI / 180) * Math.sin(dLon / 2) ** 2;
       const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
       return R * c;
     },
 
     async fetchPoints(lat, lon) {
-      const latMin = lat - 0.1;
-      const latMax = lat + 0.1;
-      const lonMin = lon - 0.1;
-      const lonMax = lon + 0.1;
-
-      const query = `
-        [out:json];
-        (
-          node["amenity"="parcel_locker"](${latMin},${lonMin},${latMax},${lonMax});
-          node["amenity"="post_office"](${latMin},${lonMin},${latMax},${lonMax});
-          node["brand"~"Mondial|Pickup|Amazon|Locker"](${latMin},${lonMin},${latMax},${lonMax});
-        );
-        out;
-      `;
+      const latMin = lat - 0.1, latMax = lat + 0.1, lonMin = lon - 0.1, lonMax = lon + 0.1;
+      const query = `[out:json];(node["amenity"="parcel_locker"](${latMin},${lonMin},${latMax},${lonMax});node["amenity"="post_office"](${latMin},${lonMin},${latMax},${lonMax});node["brand"~"Mondial|Pickup|Amazon|Locker"](${latMin},${lonMin},${latMax},${lonMax}););out;`;
 
       try {
-        const url =
-          "https://overpass-api.de/api/interpreter?data=" +
-          encodeURIComponent(query);
-        const res = await fetch(url);
+        const res = await fetch(`https://overpass-api.de/api/interpreter?data=${encodeURIComponent(query)}`);
         const data = await res.json();
-
         if (!data.elements) {
           this.pointsRetrait = [];
           return;
         }
 
         this.pointsRetrait = data.elements
-          .filter(
-            (e) =>
-              e.tags && (e.tags.name || e.tags.brand || e.tags.operator)
-          )
-          .map((e) => ({
+          .filter(e => e.tags && (e.tags.name || e.tags.brand || e.tags.operator))
+          .map(e => ({
             id: e.id,
-            nom:
-              e.tags.name ||
-              e.tags.brand ||
-              e.tags.operator ||
-              "Point relais",
+            nom: e.tags.name || e.tags.brand || e.tags.operator || "Point relais",
             lat: e.lat,
             lon: e.lon,
-            distance: this.distance(
-              { lat: this.lat, lon: this.lon },
-              { lat: e.lat, lon: e.lon }
-            ),
+            distance: this.distance({ lat: this.lat, lon: this.lon }, { lat: e.lat, lon: e.lon })
           }))
           .sort((a, b) => a.distance - b.distance)
           .slice(0, 20);
@@ -423,7 +331,6 @@ export default {
 
     initializeMap() {
       if (!this.lat || !this.lon) return;
-
       const container = document.getElementById("pickupMap");
       if (!container) return;
 
@@ -433,29 +340,19 @@ export default {
       }
 
       this.map = L.map("pickupMap").setView([this.lat, this.lon], 14);
-
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-        attribution: "© OpenStreetMap",
+        attribution: "© OpenStreetMap"
       }).addTo(this.map);
 
-      // Nettoyage anciens marqueurs
-      this.markers.forEach((m) => this.map.removeLayer(m));
+      this.markers.forEach(m => this.map.removeLayer(m));
       this.markers = [];
+      L.marker([this.lat, this.lon]).addTo(this.map).bindPopup("Votre position");
 
-      // Marqueur utilisateur
-      L.marker([this.lat, this.lon])
-        .addTo(this.map)
-        .bindPopup("Votre position");
-
-      // Points relais
-      this.pointsRetrait.forEach((p) => {
-        const marker = L.marker([p.lat, p.lon])
-          .addTo(this.map)
-          .on("click", () => {
-            this.selectedPickup = p;
-            this.showMap = false;
-          });
-
+      this.pointsRetrait.forEach(p => {
+        const marker = L.marker([p.lat, p.lon]).addTo(this.map).on("click", () => {
+          this.selectedPickup = p;
+          this.showMap = false;
+        });
         marker.bindPopup(`<b>${p.nom}</b><br>${p.distance.toFixed(1)} km`);
         this.markers.push(marker);
       });
@@ -463,23 +360,21 @@ export default {
   },
 
   mounted() {
-    // ✅ GÉOLOCALISATION + CHARGEMENT POINTS
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
-        (pos) => {
+        pos => {
           this.lat = pos.coords.latitude;
           this.lon = pos.coords.longitude;
-          this.fetchPoints(this.lat, this.lon); // ✅ CETTE LIGNE MANQUAIT !
+          this.fetchPoints(this.lat, this.lon);
         },
-        (err) => {
-          console.error("Erreur géolocalisation", err);
-        }
+        err => console.error("Erreur géolocalisation", err)
       );
     }
     this.fetchPanier();
   },
 };
 </script>
+
 
 
 <style scoped>

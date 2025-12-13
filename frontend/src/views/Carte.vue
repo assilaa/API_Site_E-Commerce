@@ -43,20 +43,21 @@
         <p>En stock : {{ jeu.quantite }}</p>
 
         <p class="description-jeu">
-          {{
-            jeu.description.length > 100
-              ? jeu.description.substring(0, 100) + "..."
-              : jeu.description
-          }}
+  {{
+    jeu.description && jeu.description.length > 100
+      ? jeu.description.substring(0, 100) + "..."
+      : (jeu.description || "")
+  }}
 
-          <button
-            v-if="jeu.description.length > 100"
-            class="btn-lire-plus"
-            @click="ouvrirDescription(jeu)"
-          >
-            Lire plus
-          </button>
-        </p>
+  <button
+    v-if="jeu.description && jeu.description.length > 100"
+    class="btn-lire-plus"
+    @click="ouvrirDescription(jeu)"
+  >
+    Lire plus
+  </button>
+</p>
+
 
         <button :disabled="jeu.quantite < 1" @click="ouvrirPopup(jeu)">
           Ajouter au Panier
@@ -397,9 +398,13 @@ export default {
       this.categories = await r.json();
     },
     async fetchJeux() {
-      const r = await fetch("http://localhost:3000/api/jeux");
-      this.jeux = await r.json();
-    },
+  const r = await fetch("http://localhost:3000/api/jeux");
+  const data = await r.json();
+  this.jeux = data.map(j => ({
+    ...j,
+    description: j.description || "",
+  }))
+},
 
     // Fonction de recommandation (ajoutée)
     async fetchRecommandations(id_j) {

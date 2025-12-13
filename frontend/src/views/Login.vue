@@ -13,10 +13,20 @@
         <span @click="showLoginPopup = false" class="close">&times;</span>
         <form @submit.prevent="validation">
           <label>Pseudo</label>
-          <input type="text" placeholder="Nom d'utilisateur" v-model="loginUsername" required>
+          <input
+            type="text"
+            placeholder="Nom d'utilisateur"
+            v-model="loginUsername"
+            required
+          />
 
           <label>Mot de passe</label>
-          <input type="password" placeholder="Mot de passe" v-model="loginPassword" required>
+          <input
+            type="password"
+            placeholder="Mot de passe"
+            v-model="loginPassword"
+            required
+          />
 
           <button type="submit">Connexion</button>
           <button type="button" @click="showLoginPopup = false">Fermer</button>
@@ -31,26 +41,45 @@
         <span @click="showSignUpPopup = false" class="close">&times;</span>
         <form @submit.prevent="validateSignUp">
           <label>Pseudo</label>
-          <input type="text" v-model="signupUsername" placeholder="Nom d'utilisateur" required>
+          <input
+            type="text"
+            v-model="signupUsername"
+            placeholder="Nom d'utilisateur"
+            required
+          />
 
           <label>Mot de passe</label>
-          <input type="password" v-model="signupPassword" placeholder="Mot de passe" required>
+          <input
+            type="password"
+            v-model="signupPassword"
+            placeholder="Mot de passe"
+            required
+          />
 
           <label>Nom</label>
-          <input type="text" v-model="signupNom" placeholder="Nom" required>
+          <input type="text" v-model="signupNom" placeholder="Nom" required />
 
           <label>Prénom</label>
-          <input type="text" v-model="signupPrenom" placeholder="Prénom" required>
+          <input
+            type="text"
+            v-model="signupPrenom"
+            placeholder="Prénom"
+            required
+          />
 
           <label>Email</label>
-          <input type="email" v-model="signupEmail" placeholder="Email" required>
+          <input
+            type="email"
+            v-model="signupEmail"
+            placeholder="Email"
+            required
+          />
 
           <button type="submit">S'inscrire</button>
           <button type="button" @click="showSignUpPopup = false">Fermer</button>
         </form>
         <p v-if="signupError" style="color: red;">{{ signupErrorMessage }}</p>
         <p v-if="signupSuccess" style="color: green;">Inscription réussie !</p>
-
       </div>
     </div>
   </section>
@@ -61,40 +90,127 @@
 </template>
 
 <script>
-import axios from 'axios';
+import axios from "axios";
 
 export default {
   data() {
     return {
-      loginUsername: '',
-      loginPassword: '',
-      signupUsername: '',
-      signupPassword: '',
-      signupNom: '',
-      signupPrenom: '',
-      signupEmail: '',
+      loginUsername: "",
+      loginPassword: "",
+      signupUsername: "",
+      signupPassword: "",
+      signupNom: "",
+      signupPrenom: "",
+      signupEmail: "",
       showLoginPopup: false,
       showSignUpPopup: false,
       loginError: false,
       signupError: false,
-      signupSuccess: false
+      signupSuccess: false,
+      signupErrorMessage: "", // ← manquait dans data()
     };
   },
   methods: {
+    validateForm() {
+    if (this.signupUsername.trim().length === 0 || this.signupUsername.trim().length > 50) {
+      this.signupError = true;
+      this.signupErrorMessage = "Pseudo invalide.";
+      return false;
+    }
+    if (this.signupPassword.length < 4 || this.signupPassword.length > 100) {
+      this.signupError = true;
+      this.signupErrorMessage = "Mot de passe invalide.";
+      return false;
+    }
+    if (!this.signupEmail.includes("@") || this.signupEmail.length > 100) {
+      this.signupError = true;
+      this.signupErrorMessage = "Email invalide.";
+      return false;
+    }
+    if (this.signupNom.trim().length === 0 || this.signupNom.trim().length > 50) {
+      this.signupError = true;
+      this.signupErrorMessage = "Nom invalide.";
+      return false;
+    }
+    if (this.signupPrenom.trim().length === 0 || this.signupPrenom.trim().length > 50) {
+      this.signupError = true;
+      this.signupErrorMessage = "Prénom invalide.";
+      return false;
+    }
+    this.signupError = false;
+    return true;
+  },
+
+  async validateSignUp() {
+    if (!this.validateForm()) {
+      return;
+    }
+    try {
+      await axios.post("http://localhost:3000/api/signup", {
+        pseudo: this.signupUsername,
+        password: this.signupPassword,
+        nom: this.signupNom,
+        prenom: this.signupPrenom,
+        email: this.signupEmail,
+      });
+      this.signupSuccess = true;
+      this.signupErrorMessage = "";
+    } catch (err) {
+      this.signupError = true;
+      if (err.response?.status === 409)
+        this.signupErrorMessage = "Pseudo ou email déjà utilisé.";
+      else
+        this.signupErrorMessage = "Inscription échouée.";
+    }
+  },
+    validateFields() {
+    this.signupError = false;
+    if (this.signupUsername.trim().length === 0 || this.signupUsername.trim().length > 50) {
+      this.signupError = true;
+      this.signupErrorMessage = "Pseudo invalide.";
+      return false;
+    }
+    if (!this.signupEmail.includes("@") || this.signupEmail.length > 100) {
+      this.signupError = true;
+      this.signupErrorMessage = "Email invalide.";
+      return false;
+    }
+    if (this.signupPassword.length < 4 || this.signupPassword.length > 100) {
+      this.signupError = true;
+      this.signupErrorMessage = "Mot de passe invalide.";
+      return false;
+    }
+    if (this.signupNom.trim().length === 0 || this.signupNom.length > 50) {
+      this.signupError = true;
+      this.signupErrorMessage = "Nom invalide.";
+      return false;
+    }
+    if (this.signupPrenom.trim().length === 0 || this.signupPrenom.length > 50) {
+      this.signupError = true;
+      this.signupErrorMessage = "Prénom invalide.";
+      return false;
+    }
+    return true;
+  },
     async validation() {
+      this.loginError = false;
       try {
-        const res = await axios.post('http://localhost:3000/api/login', {
+        const res = await axios.post("http://localhost:3000/api/login", {
           pseudo: this.loginUsername,
-          password: this.loginPassword
+          password: this.loginPassword,
         });
 
+        // ✅ stocker TOUT : token + userId + role
+        localStorage.setItem("token", res.data.token);
         localStorage.setItem("role", res.data.role);
         localStorage.setItem("userId", res.data.userId);
-        
-        if (res.data.role === 'admin') {
-          this.$router.push('/admin');
-        } else if (res.data.role === 'user') {
-          this.$router.push('/carte');
+
+        this.showLoginPopup = false;
+
+        if (res.data.role === "admin") {
+          this.$router.push("/admin");
+        } else if (res.data.role === "user") {
+          this.$router.push("/carte");
         }
       } catch (err) {
         this.loginError = true;
@@ -102,33 +218,43 @@ export default {
     },
 
     async validateSignUp() {
-  try {
-    const res = await axios.post('http://localhost:3000/api/signup', {
-      pseudo: this.signupUsername,
-      password: this.signupPassword,
-      nom: this.signupNom,
-      prenom: this.signupPrenom,
-      email: this.signupEmail
-    });
-    // Succès
-    this.signupSuccess = true;
-    this.signupError = false;
-    this.signupErrorMessage = '';
-  } catch (err) {
-    this.signupSuccess = false;
-    // Si erreur, tester le code de réponse
-    if (err.response && err.response.status === 409) {
-      this.signupErrorMessage = "Pseudo ou email déjà utilisé.";
-    } else {
-      this.signupErrorMessage = "Inscription échouée.";
-    }
-    this.signupError = true;
-  }
-}
+    if (!this.validateFields()) return;
 
-  }
+    this.signupError = false;
+    this.signupSuccess = false;
+    try {
+      await axios.post("http://localhost:3000/api/signup", {
+        pseudo: this.signupUsername,
+        password: this.signupPassword,
+        nom: this.signupNom,
+        prenom: this.signupPrenom,
+        email: this.signupEmail,
+      });
+      this.signupSuccess = true;
+      this.signupErrorMessage = "";
+
+      // Vider champs
+      this.signupUsername = "";
+      this.signupPassword = "";
+      this.signupNom = "";
+      this.signupPrenom = "";
+      this.signupEmail = "";
+    } catch (err) {
+      if (err.response && err.response.status === 409) {
+        this.signupErrorMessage = "Pseudo ou email déjà utilisé.";
+      } else if (err.response && err.response.status === 429) {
+        this.signupErrorMessage = "Trop de tentatives, réessayez plus tard.";
+      } else {
+        this.signupErrorMessage = "Inscription échouée.";
+      }
+      this.signupError = true;
+    }
+  },
+  },
 };
 </script>
+
+
 
 
 

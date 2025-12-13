@@ -4,6 +4,10 @@ const router = express.Router();
 const sqlite3 = require("sqlite3");
 const { open } = require("sqlite");
 const tf = require("@tensorflow/tfjs-node");
+const { sanitizeUserInput } = require("./utils/security");
+
+const pseudoSanitize = sanitizeUserInput(req.body.pseudo);
+
 
 router.get("/:id_user", async (req, res) => {
   try {

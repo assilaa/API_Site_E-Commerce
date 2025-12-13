@@ -1,0 +1,7 @@
+{
+  "pseudo": "<script>alert('XSS')</script>zaiinab",
+  "password": "pass1234",
+  "email": "<img src=x onerror=alert('XSS Hack!')>test@test.com",
+  "nom": "<svg onload=alert(1)>Jean",
+  "prenom": "Dupont"
+}

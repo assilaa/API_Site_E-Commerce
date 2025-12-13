@@ -47,6 +47,9 @@ const router = express.Router();
 const db = require("../database.js");
 const tf = require("@tensorflow/tfjs-node");
 const use = require("@tensorflow-models/universal-sentence-encoder");
+const { sanitizeUserInput } = require("./utils/security");
+
+const pseudoSanitize = sanitizeUserInput(req.body.pseudo);
 
 let model = null;
 

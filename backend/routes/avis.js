@@ -1,6 +1,10 @@
 const express = require("express");
 const router = express.Router();
 const db = require("../database.js");
+const { sanitizeUserInput } = require("./utils/security");
+
+const pseudoSanitize = sanitizeUserInput(req.body.pseudo);
+
 
 /* GET Avis d’un jeu */
 router.get("/:id_j", (req, res) => {

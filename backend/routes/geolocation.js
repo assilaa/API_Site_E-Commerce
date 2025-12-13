@@ -1,6 +1,10 @@
 const express = require("express");
 const axios = require("axios");
 const router = express.Router();
+const { sanitizeUserInput } = require("./utils/security");
+
+const pseudoSanitize = sanitizeUserInput(req.body.pseudo);
+
 
 router.get("/search", async (req, res) => {
     const { query } = req.query;
